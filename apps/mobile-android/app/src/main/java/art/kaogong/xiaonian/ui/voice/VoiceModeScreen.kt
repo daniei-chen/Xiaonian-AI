@@ -81,6 +81,7 @@ fun VoiceModeScreen(
     onTapOrb: () -> Unit = {},
     onAttach: () -> Unit = {},
     onStopSpeaking: () -> Unit = {},
+    onOpenVoiceSettings: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -99,6 +100,18 @@ fun VoiceModeScreen(
                 Icon(
                     imageVector = Icons.Outlined.Menu,
                     contentDescription = "菜单",
+                    tint = XiaonianColors.Ink,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            PressableCircle(
+                size = 48.dp,
+                background = Color(0xFFF2F2F4),
+                onClick = onOpenVoiceSettings,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Tune,
+                    contentDescription = "语速与音色",
                     tint = XiaonianColors.Ink,
                     modifier = Modifier.size(20.dp),
                 )

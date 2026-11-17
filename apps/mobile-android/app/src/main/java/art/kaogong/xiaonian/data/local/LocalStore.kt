@@ -63,10 +63,23 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        // P0 不做增量迁移：结构变了就重建，历史可以走导入恢复
-        db.execSQL("DROP TABLE IF EXISTS messages")
-        db.execSQL("DROP TABLE IF EXISTS conversations")
-        onCreate(db)
+        // 增量迁移，**绝不删表**：用户的会话历史不该因为一次升级就没了。
+        //
+        // 好消息是 messages 的内容以 JSON 存在 blocks 列里，加字段（signature、
+        // fileId 之类）不需要动表结构；只有加列/加索引/改语义才需要写在这里。
+        var version = oldVersion
+
+        // 示例（当前还没有 v2，留着说明写法）：
+        // if (version < 2) {
+        //     db.execSQL("ALTER TABLE messages ADD COLUMN tokens INTEGER NOT NULL DEFAULT 0")
+        //     version = 2
+        // }
+
+        if (version != newVersion) {
+            // 没有任何迁移步骤却要升级版本号：说明有人只改了 DB_VERSION。
+            // 与其静默留下结构不一致的库，不如明确失败。
+            error("no migration from v$oldVersion to v$newVersion; add one in onUpgrade")
+        }
     }
 
     // ---------------------------------------------------------------- 会话

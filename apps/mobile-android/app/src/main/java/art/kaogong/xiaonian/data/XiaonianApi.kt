@@ -49,6 +49,16 @@ data class BlockDto(
     val type: String,
     val text: String? = null,
     val citations: List<CitationDto>? = null,
+    /**
+     * Anthropic 的思考签名。必须在下一轮原样回传，否则上游会拒绝这段历史，
+     * 或者模型看不到自己之前的思考过程。
+     */
+    val signature: String? = null,
+    /** 文件/图片引用；历史回放时用得到，不能只存文本 */
+    val fileId: String? = null,
+    val fileName: String? = null,
+    val fileMime: String? = null,
+    val fileSize: Long? = null,
 )
 
 @Serializable
@@ -108,6 +118,8 @@ sealed interface ChatStreamEvent {
     data class BlockStart(val index: Int, val block: BlockDto) : ChatStreamEvent
     data class TextDelta(val index: Int, val text: String) : ChatStreamEvent
     data class ReasoningDelta(val index: Int, val text: String) : ChatStreamEvent
+    /** 思考块的签名，块结束时单独下发，必须存下来供下一轮回传 */
+    data class Signature(val index: Int, val signature: String) : ChatStreamEvent
     data class Citations(val items: List<CitationDto>) : ChatStreamEvent
     data class Usage(val usage: UsageDto) : ChatStreamEvent
     data class Completed(val messageId: String, val canContinue: Boolean) : ChatStreamEvent

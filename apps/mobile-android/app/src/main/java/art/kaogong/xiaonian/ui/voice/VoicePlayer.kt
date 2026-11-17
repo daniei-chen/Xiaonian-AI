@@ -17,6 +17,9 @@ class VoicePlayer(private val context: Context) {
     private var file: File? = null
     private var draining = false
 
+    /** 播放速度倍率，由设置页控制 */
+    var rate: Float = 1f
+
     /** 全部播放结束（或被 stop）时回调，UI 用来复位「正在朗读」 */
     var onComplete: (() -> Unit)? = null
 
@@ -49,6 +52,12 @@ class VoicePlayer(private val context: Context) {
             MediaPlayer().apply {
                 setDataSource(temp.absolutePath)
                 prepare()
+                // 语速在本地调，不用依赖上游参数
+                if (rate != 1f) {
+                    runCatching {
+                        playbackParams = playbackParams.setSpeed(rate)
+                    }
+                }
                 setOnCompletionListener {
                     runCatching { it.release() }
                     playNext()

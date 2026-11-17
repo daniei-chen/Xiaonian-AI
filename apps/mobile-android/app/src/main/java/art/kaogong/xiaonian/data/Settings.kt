@@ -22,6 +22,8 @@ object Settings {
     private const val KEY_THINKING = "thinking_enabled"
     private const val KEY_EFFORT = "thinking_effort"
     private const val KEY_FONT_SCALE = "font_scale"
+    private const val KEY_TTS_RATE = "tts_rate"
+    private const val KEY_TTS_VOICE = "tts_voice"
 
     /** zhihui：便宜、快，OpenAI 协议；deepseek：官方，支持文件引用与引用编号 */
     const val PROVIDER_ZHIHUI = "zhihui"
@@ -100,5 +102,23 @@ object Settings {
             .remove(KEY_ZHIHUI_KEY)
             .remove(KEY_DEEPSEEK_KEY)
             .apply()
+    }
+
+    // ---------------------------------------------------------------- 语音
+
+    /** 朗读语速：本地用 PlaybackParams 调速，不依赖上游参数 */
+    fun ttsRate(context: Context): Float =
+        prefs(context).getFloat(KEY_TTS_RATE, 1f).coerceIn(0.6f, 1.6f)
+
+    fun setTtsRate(context: Context, value: Float) {
+        prefs(context).edit().putFloat(KEY_TTS_RATE, value.coerceIn(0.6f, 1.6f)).apply()
+    }
+
+    /** 音色：上游 voice_id */
+    fun ttsVoice(context: Context): String =
+        prefs(context).getString(KEY_TTS_VOICE, null)?.takeIf { it.isNotBlank() } ?: "stella"
+
+    fun setTtsVoice(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_TTS_VOICE, value.trim()).apply()
     }
 }

@@ -71,6 +71,8 @@ data class ChatUiState(
     val thinking: Boolean = false,
     /** 思考强度：high 快，max 深 */
     val effort: String = "high",
+    /** 正在从本地库读某个会话 */
+    val loadingConversation: Boolean = false,
     val error: String? = null,
 )
 
@@ -317,8 +319,9 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
+            val voice = Settings.ttsVoice(getApplication())
             // 按句合成、逐句推送：第一句出来就能播，其余在旁边合成
-            repo.tool.synthesizeBySentence(trimmed.take(2000)) { _, audio ->
+            repo.tool.synthesizeBySentence(trimmed.take(2000), voice) { _, audio ->
                 _voiceAudio.emit(audio)
             }
         }
@@ -408,6 +411,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                         is ChatStreamEvent.Accepted -> remoteAssistantId = event.assistantMessageId
                         is ChatStreamEvent.Started -> Unit
                         is ChatStreamEvent.BlockStart -> Unit
+                        is ChatStreamEvent.Signature -> Unit
                         is ChatStreamEvent.Usage -> Unit
                         is ChatStreamEvent.TextDelta ->
                             updateMessage(localAssistantId) { it.copy(text = it.text + event.text) }
@@ -428,9 +432,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                         is ChatStreamEvent.Failed -> {
                             android.util.Log.e("ChatViewModel", "stream failed: ${event.code} / ${event.message}")
                             updateMessage(localAssistantId) {
-                                // 失败文案由下方统一提示，别把错误再塞进正文里
                                 it.copy(streaming = false, failed = true)
                             }
+                            // 把具体原因抬到界面上：只显示「生成失败」等于什么都没说
+                            _state.update { it.copy(error = event.message) }
                         }
                     }
                 }
@@ -538,6 +543,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     fun openConversation(id: String) {
         if (_state.value.streaming) return
+        _state.update { it.copy(loadingConversation = true, error = null) }
         viewModelScope.launch {
             runCatching { repo.messages(id) }
                 .onSuccess { messages ->
@@ -546,6 +552,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                             activeConversationId = id,
                             messages = messages.map(::toUiMessage),
                             streaming = false,
+                            loadingConversation = false,
                             error = null,
                         )
                     }

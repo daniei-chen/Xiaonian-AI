@@ -10,6 +10,7 @@ import art.kaogong.xiaonian.data.FileRef
 import art.kaogong.xiaonian.data.MessageDto
 import art.kaogong.xiaonian.data.Settings
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -75,6 +76,18 @@ class ChatRepository(
 
         if (apiKey.isBlank()) {
             emit(ChatStreamEvent.Failed("no_key", "还没配置密钥：菜单 → 设置"))
+            return@flow
+        }
+
+        // 附件只有 Anthropic 协议那条路能用（Files API 的 file_id）。
+        // 之前这里直接把 files 丢掉，用户以为发出去了其实模型没收到——宁可报错。
+        if (files.isNotEmpty() && provider != Settings.PROVIDER_DEEPSEEK) {
+            emit(
+                ChatStreamEvent.Failed(
+                    "unsupported_attachment",
+                    "当前用的智汇接口不支持附件，切到「官方」再发，或先移除附件",
+                ),
+            )
             return@flow
         }
 
@@ -171,51 +184,67 @@ class ChatRepository(
         emit(ChatStreamEvent.Accepted(assistant.id))
 
         val blocks = mutableListOf<BlockDto>()
-        var textBuffer = StringBuilder()
-        var reasoningBuffer = StringBuilder()
+        val textBuffer = StringBuilder()
+        val reasoningBuffer = StringBuilder()
+        /** Anthropic 的思考签名，块结束时下发，必须存进块里 */
+        var reasoningSignature: String? = null
         var failed = false
+        var finishedNormally = false
 
-        // 边转发边累积：流结束后要一次性写回本地
-        chatApi.stream(
-            provider = provider,
-            baseURL = baseUrl,
-            apiKey = apiKey,
-            model = model,
-            history = history,
-            prompt = prompt,
-            thinking = thinking,
-            effort = effort,
-            files = files,
-            system = system,
-        ).collect { event ->
-            when (event) {
-                is ChatStreamEvent.TextDelta -> textBuffer.append(event.text)
-                is ChatStreamEvent.ReasoningDelta -> reasoningBuffer.append(event.text)
-                is ChatStreamEvent.Failed -> failed = true
-                else -> Unit
+        // 边转发边累积；无论正常结束、异常还是被取消，都要把状态写回本地，
+        // 否则库里会留下永久 streaming 的消息（下次打开还显示"正在生成"）
+        try {
+            chatApi.stream(
+                provider = provider,
+                baseURL = baseUrl,
+                apiKey = apiKey,
+                model = model,
+                history = history,
+                prompt = prompt,
+                thinking = thinking,
+                effort = effort,
+                files = files,
+                system = system,
+            ).collect { event ->
+                when (event) {
+                    is ChatStreamEvent.TextDelta -> textBuffer.append(event.text)
+                    is ChatStreamEvent.ReasoningDelta -> reasoningBuffer.append(event.text)
+                    is ChatStreamEvent.Signature -> reasoningSignature = event.signature
+                    is ChatStreamEvent.Failed -> failed = true
+                    is ChatStreamEvent.Completed -> finishedNormally = true
+                    else -> Unit
+                }
+                emit(event)
             }
-            emit(event)
-        }
+        } finally {
+            // NonCancellable：用户点了停止，协程已取消，但收尾必须跑完
+            withContext(NonCancellable + Dispatchers.IO) {
+                if (reasoningBuffer.isNotEmpty()) {
+                    blocks.add(
+                        BlockDto(
+                            type = "reasoning",
+                            text = reasoningBuffer.toString(),
+                            signature = reasoningSignature,
+                        ),
+                    )
+                }
+                if (textBuffer.isNotEmpty()) {
+                    blocks.add(
+                        BlockDto(
+                            type = "text",
+                            text = textBuffer.toString(),
+                            citations = preCitations.takeIf { it.isNotEmpty() },
+                        ),
+                    )
+                }
 
-        // 流结束后把累积的正文/思考写回本地
-        withContext(Dispatchers.IO) {
-            if (reasoningBuffer.isNotEmpty()) {
-                blocks.add(BlockDto(type = "reasoning", text = reasoningBuffer.toString()))
+                val status = when {
+                    failed -> "failed"
+                    finishedNormally -> "completed"
+                    else -> "cancelled"
+                }
+                store.updateMessage(id = assistant.id, blocks = blocks, status = status)
             }
-            if (textBuffer.isNotEmpty()) {
-                blocks.add(
-                    BlockDto(
-                        type = "text",
-                        text = textBuffer.toString(),
-                        citations = preCitations.takeIf { it.isNotEmpty() },
-                    ),
-                )
-            }
-            store.updateMessage(
-                id = assistant.id,
-                blocks = blocks,
-                status = if (failed) "failed" else "completed",
-            )
         }
     }
 }

@@ -183,6 +183,7 @@ fun XiaonianApp(
 
     if (voiceMode) {
         var speaking by remember { mutableStateOf(false) }
+        var showVoiceSettings by remember { mutableStateOf(false) }
 
         val player = remember {
             VoicePlayer(context).also { p -> p.onComplete = { speaking = false } }
@@ -199,8 +200,22 @@ fun XiaonianApp(
         LaunchedEffect(Unit) {
             viewModel.voiceAudio.collect { bytes ->
                 speaking = bytes.isNotEmpty()
+                player.rate = Settings.ttsRate(context)
                 player.enqueue(bytes)
             }
+        }
+
+        if (showVoiceSettings) {
+            art.kaogong.xiaonian.ui.voice.VoiceSettingsDialog(
+                rate = Settings.ttsRate(context),
+                voice = Settings.ttsVoice(context),
+                onDismiss = { showVoiceSettings = false },
+                onSave = { rate, voice ->
+                    Settings.setTtsRate(context, rate)
+                    Settings.setTtsVoice(context, voice)
+                    player.rate = rate
+                },
+            )
         }
 
         VoiceModeScreen(
@@ -219,6 +234,7 @@ fun XiaonianApp(
                 player.stop()
                 speaking = false
             },
+            onOpenVoiceSettings = { showVoiceSettings = true },
             onTapOrb = {
                 if (state.recording) {
                     viewModel.finishVoiceTurn()
