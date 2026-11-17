@@ -209,6 +209,12 @@ class LocalStore(context: Context) : SQLiteOpenHelper(context, DB_NAME, null, DB
             .use { if (it.moveToFirst()) it.getLong(0) else 1L }
     }
 
+    /** 清除全部会话与消息（设置里的「清除所有对话」） */
+    fun clearAll() {
+        writableDatabase.execSQL("DELETE FROM messages")
+        writableDatabase.execSQL("DELETE FROM conversations")
+    }
+
     private fun decodeBlocks(raw: String): List<BlockDto> =
         runCatching { json.decodeFromString<List<BlockDto>>(raw) }.getOrDefault(emptyList())
 

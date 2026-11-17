@@ -26,7 +26,8 @@ import art.kaogong.xiaonian.ui.chat.AttachSheet
 import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
-import art.kaogong.xiaonian.ui.settings.ApiSettingsDialog
+import art.kaogong.xiaonian.ui.settings.SettingsDialog
+import art.kaogong.xiaonian.ui.settings.SettingsValues
 import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
 import art.kaogong.xiaonian.ui.voice.VoicePlayer
 import kotlinx.coroutines.launch
@@ -46,6 +47,7 @@ fun XiaonianApp(
     var showSettings by remember { mutableStateOf(false) }
     var provider by remember { mutableStateOf(Settings.provider(context)) }
     var settingsModel by remember { mutableStateOf(Settings.model(context)) }
+    var fontScale by remember { mutableStateOf(Settings.fontScale(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
 
@@ -301,22 +303,34 @@ fun XiaonianApp(
     }
 
     if (showSettings) {
-        ApiSettingsDialog(
-            provider = provider,
-            apiKey = Settings.apiKey(context, provider),
-            model = settingsModel,
+        SettingsDialog(
+            initial = SettingsValues(
+                provider = provider,
+                apiKey = Settings.apiKey(context, provider),
+                model = settingsModel,
+                defaultThinking = Settings.defaultThinking(context),
+                defaultEffort = Settings.defaultEffort(context),
+                fontScale = Settings.fontScale(context),
+            ),
+            versionName = "0.2.0",
             onDismiss = { showSettings = false },
-            onSave = { picked, key, model ->
-                Settings.setProvider(context, picked)
-                Settings.setApiKey(context, picked, key)
-                Settings.setModel(context, model)
-                provider = picked
+            onSave = { values ->
+                Settings.setProvider(context, values.provider)
+                Settings.setApiKey(context, values.provider, values.apiKey)
+                Settings.setModel(context, values.model)
+                Settings.setDefaultThinking(context, values.defaultThinking)
+                Settings.setDefaultEffort(context, values.defaultEffort)
+                Settings.setFontScale(context, values.fontScale)
+                provider = values.provider
                 settingsModel = Settings.model(context)
+                fontScale = values.fontScale
+                viewModel.applyDefaults(values.defaultThinking, values.defaultEffort)
                 viewModel.refreshConversations()
             },
-            onTest = { picked, key, model, callback ->
-                viewModel.testUpstream(picked, key, model, callback)
+            onTest = { picked, key, callback ->
+                viewModel.testUpstream(picked, key, Settings.model(context), callback)
             },
+            onClearAll = { viewModel.clearAll() },
         )
     }
 

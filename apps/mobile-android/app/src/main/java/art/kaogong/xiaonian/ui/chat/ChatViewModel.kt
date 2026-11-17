@@ -141,6 +141,27 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(error = message) }
     }
 
+    /** 设置保存后把默认思考/强度应用到当前会话 */
+    fun applyDefaults(thinking: Boolean, effort: String) {
+        _state.update { it.copy(thinking = thinking, effort = effort) }
+    }
+
+    /** 设置里的「清除所有对话」：真的删库 */
+    fun clearAll() {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) { store.clearAll() }
+            _state.update {
+                it.copy(
+                    messages = emptyList(),
+                    activeConversationId = null,
+                    conversations = emptyList(),
+                    error = "已清除全部对话",
+                )
+            }
+            refreshConversations()
+        }
+    }
+
     /** 设置页用：验证密钥是否能通（只读请求，不消耗额度） */
     fun testUpstream(
         provider: String,

@@ -20,6 +20,8 @@ object Settings {
     private const val KEY_DEEPSEEK_KEY = "deepseek_key"
     private const val KEY_MODEL = "model"
     private const val KEY_THINKING = "thinking_enabled"
+    private const val KEY_EFFORT = "thinking_effort"
+    private const val KEY_FONT_SCALE = "font_scale"
 
     /** zhihui：便宜、快，OpenAI 协议；deepseek：官方，支持文件引用与引用编号 */
     const val PROVIDER_ZHIHUI = "zhihui"
@@ -66,4 +68,37 @@ object Settings {
 
     /** 当前 provider 是否已经配好密钥 */
     fun isConfigured(context: Context): Boolean = apiKey(context, provider(context)).isNotBlank()
+
+    // ---------------------------------------------------------------- 默认行为
+
+    /** 新对话默认是否开启深入思考，省得每次手动点 */
+    fun defaultThinking(context: Context): Boolean =
+        prefs(context).getBoolean(KEY_THINKING, false)
+
+    fun setDefaultThinking(context: Context, value: Boolean) {
+        prefs(context).edit().putBoolean(KEY_THINKING, value).apply()
+    }
+
+    fun defaultEffort(context: Context): String =
+        prefs(context).getString(KEY_EFFORT, "high")?.takeIf { it == "high" || it == "max" } ?: "high"
+
+    fun setDefaultEffort(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_EFFORT, value).apply()
+    }
+
+    /** 回答正文字号倍率：0.9 / 1.0 / 1.15 / 1.3 */
+    fun fontScale(context: Context): Float =
+        prefs(context).getFloat(KEY_FONT_SCALE, 1f).coerceIn(0.85f, 1.4f)
+
+    fun setFontScale(context: Context, value: Float) {
+        prefs(context).edit().putFloat(KEY_FONT_SCALE, value.coerceIn(0.85f, 1.4f)).apply()
+    }
+
+    /** 清除所有配置（不含会话数据） */
+    fun clearCredentials(context: Context) {
+        prefs(context).edit()
+            .remove(KEY_ZHIHUI_KEY)
+            .remove(KEY_DEEPSEEK_KEY)
+            .apply()
+    }
 }
