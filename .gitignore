@@ -1,0 +1,30 @@
+# 依赖
+node_modules/
+.pnpm-store/
+
+# 参考实现（chat-demo 只读，不入库）
+.ref/
+
+# 构建产物
+dist/
+build/
+*.tsbuildinfo
+apps/mobile-android/app/build/
+.gradle/
+local.properties
+*.iml
+
+# 运行输出
+.out/
+coverage/
+.data/
+
+# 环境变量（.env.example 要入库）
+.env
+.env.*
+!.env.example
+
+# 日志与系统
+*.log
+.DS_Store
+Thumbs.db

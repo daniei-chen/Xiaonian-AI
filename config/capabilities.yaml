@@ -1,0 +1,78 @@
+# 能力层配置：哪类能力用谁、失败后降级到谁。
+# 只有 kind 是代码，其余全是数据；密钥一律从环境变量取，绝不写进这里。
+
+chat:
+  default: zhihui
+  fallback: []
+  providers:
+    zhihui:
+      protocol: openai
+      baseURL: https://zhihui.kaogong.art/v1
+      apiKeyEnv: ZHIHUI_API_KEY
+      model: deepseek-v4.1-flash
+    deepseek:
+      # 切到 anthropic 即启用服务端联网工具 / 服务端标题 / signature 回传
+      protocol: anthropic
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+      model: deepseek-flash
+
+search:
+  default: deepseek
+  fallback: [anysearch]
+  providers:
+    deepseek:
+      kind: deepseek-search
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+    anysearch:
+      kind: anysearch-mcp
+      apiKeyEnv: ANYSEARCH_API_KEY
+
+fetch:
+  default: deepseek
+  fallback: [anysearch]
+  providers:
+    deepseek:
+      kind: deepseek-fetch
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+    anysearch:
+      kind: anysearch-mcp
+      apiKeyEnv: ANYSEARCH_API_KEY
+
+ocr:
+  default: deepseek
+  fallback: []
+  providers:
+    deepseek:
+      kind: deepseek-ocr
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+
+asr:
+  default: deepseek
+  fallback: []
+  providers:
+    deepseek:
+      kind: deepseek-asr
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+
+tts:
+  default: deepseek
+  fallback: []
+  providers:
+    deepseek:
+      kind: deepseek-tts
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY
+
+files:
+  default: deepseek
+  fallback: []
+  providers:
+    deepseek:
+      kind: deepseek-files
+      baseURL: https://api.deepseek.com
+      apiKeyEnv: DEEPSEEK_API_KEY

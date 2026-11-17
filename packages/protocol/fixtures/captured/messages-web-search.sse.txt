@@ -1,0 +1,208 @@
+event: message_start
+data: {"type":"message_start","message":{"id":"9c77a9ab-dbfb-4729-b4ba-d7a617498199","type":"message","role":"assistant","model":"deepseek-flash","content":[],"stop_reason":null,"stop_sequence":null,"usage":{"input_tokens":18,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":0,"service_tier":"standard"}}}
+
+event: content_block_start
+data: {"type":"content_block_start","index":0,"content_block":{"type":"server_tool_use","id":"srvtoolu_s_00_6e20fac5deec4cc8a61eea8ef8d828c2","name":"deepseek_web_search","input":{"action":"search","queries":["DeepSeek 2026年最新版本号是多少","site:api-docs.deepseek.com 版本号"]},"caller":{"type":"direct"},"kind":"search"}}
+
+event: ping
+data: {"type":"ping"}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":0}
+
+event: content_block_start
+data: {"type":"content_block_start","index":1,"content_block":{"type":"web_search_tool_result","tool_use_id":"srvtoolu_s_00_6e20fac5deec4cc8a61eea8ef8d828c2","content":[{"type":"web_search_result","title":"Change Log | DeepSeek API Docs - Search / Fetch API is now available, powered by our in-house search engine and supporting web search and fetch","url":"https://api-docs.deepseek.com/updates/?release=deepseek-coder#1","encrypted_content":"zh1Gc5swHrw1/ymxPSbS7I7ZjJWefVRj6LQJR8oJcfLLqVr4Ld9K9TUuajqwZDGH5rxoaIftYFSkP4b4SDgseWJVEQAV3qXf7o7tsbFZhxrClyKpuZhAgt7XGbUe4cqE3GJH3HDqBUYdTEB7tBcLaxBQ14ThS5mvYuQiTQ9bhv8wyVHaZuBtbRN57Rh66t+PcEYShAdaNJjU86iHFqPLfWiAu1R1ZxLi3qntiqOv/tc/UBXNV+XRnuAF23/TJ8jk","page_age":"2026-10-16T16:00:00+00:00","snippet":"Date: 2026-10-17 ... 2026-07-31 ### DeepSeek-V4-Flash Update The official release of the DeepSeek-V4-Flash API is now in public beta. ... 2026-04-24 ### DeepSeek-V4","site_name":"DeepSeek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"更新日志","url":"https://api-docs.deepseek.com/zh-cn/updates.md","encrypted_content":"6SYn+JezS7FnCvASQwiobnIsk1zmR51DQB71A5v0ZgBeLVT3PNMEa8NL41qHYrmbqE9vFiDgq55U7qTVMpbCGSvK2wMaq8/0OaNWOuRHy9mLoTeYbuMpYt/VLwnSiCWbzNTBBviDWe1xWJewv2NniUqaZvV+bamDp/X0AUltH7QU0tOaco+KbCShLMqx9z5pjbtXJnG2igNyhTsOpAbjpgqQe5p/2GfweNp7259f1OenavQ7kkBAN8B7OB4qb4s/u3n5RcCB","page_age":null,"snippet":"时间: 2026-10-17 ... DeepSeek-V4.1-Flash-1017 更新 ... DeepSeek-V4.1-Flash 发布 ... DeepSeek-V4-Flash-Vision-Exp 发布 ... DeepSeek-V4-Pro 更新 ... DeepSeek-V3.2","site_name":"Deepseek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"DeepSeek-V4.1-Flash-1017: Wish-Driven Programming Made Real | DeepSeek API Docs","url":"https://api-docs.deepseek.com/news/news261017/?fpid=fp_vs1khf2mmvwuiv1f&fid=default&var=A","encrypted_content":"BwPYERxAGzDdUmxv26tu257KH5fzy2LB/Ezdapn93D7g7vZkgMst4B0ubPZq1Oebm6esJjXCXQzf3JzSgcdK2FCzSxIA3doIn9cBZNYu8MQEZrfcIZdYzuSncOV5MN3MsZTEgjPilsoGrG3LF0f62YBLxSKR68N/k2SJD5CB0VaBbRKSwQLenCJkbFROEgnOranIR5YVNIs3xqN4QHNHGfsq7Ps=","page_age":"2026-10-16T16:00:00+00:00","snippet":"DeepSeek-V4.1-Flash-1017: Wish-Driven Programming Made Real ## 🚀 DeepSeek-V4.1-Flash-1017 is here ... Get DeepSeek-V4.1-Flash-1017...","site_name":"DeepSeek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"DeepSeek V4.1 Flash 新版本：许愿式编程一键成真 | DeepSeek API Docs - DeepSeek 全家桶应用 API 已发布：联网搜索、文件输入、阅读链接、模型安全、ASR、TTS 等，点此查看使用指南","url":"https://api-docs.deepseek.com/zh-cn/news/news261017/#1","encrypted_content":"EM3hvHxTAKIrRnlJKtAN9F81WrfKM7yhcdDsCDrPLffXJNu0DyS62GveMfhM19p/4R0yipuPmBoJW5sK94/vI/vem7GheawM08jvEE7fW/K2GlS0B9rImB1vmTa4IfeIZLomA1H3uTAldTac4da3qwESzlaUG8Rdj+y0sQtxMQOPY47rYZLbsqteN6emO8uqfOcsWMyQZoOEJ85HP1YP5hi5Wkpthc+Eo7Y8Lj59TJBwqmguDVgidTgPvF2ApjUY6uFyWYSRIfg9E0ghBouYeDz3X0Rj19A=","page_age":"2026-10-16T16:00:00+00:00","snippet":"DeepSeek V4.1 Flash 新版本：许愿式编程一键成真 DeepSeek V4.1 Flash 现已更新至 V4.1-Flash-1017 版本，官方网页端、APP 与 API 模型已同步变更为新模型。","site_name":"DeepSeek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"更新日志 - 更新日志","url":"https://api-docs.deepseek.com/zh-cn/updates.md#1","encrypted_content":"ivygUBfmG7QSymNPPbOQ0qUYQNrmDKK/ZhnLwpwmC5Wb+RZ3YCzKFFs7kSyGtkA0jYlqTYiF3KQTxfFWeQO4SWXi8pYDg8zcGZT4vYCOEJ174zJ1DF5FLai2LbU4334NQLgtdbs6d/bSDa7OS8N7pegKbwYkzDBbFZVqrKMH/hlIDYc6aU/e7DUvBJ+bM4yla0gpdUeC6hmMyvW8EqIx6ZFymgKu+p7Nzzr8a5Fb96DHfQ2a0ugmqV6HO9m9MPwA9IKE889f1lydlZxGPX0dxkxL43j7oDddrW4XYcsP9I8sLv4d3yf+ptdfo8u+rxvppg==","page_age":null,"snippet":"时间 ... DeepSeek-V4.1-Flash-1017 更新 ... DeepSeek-V4.1-Flash 发布 今天，我们正式发布 DeepSeek-V4.1-Flash 模型 ... DeepSeek-V4-Flash-Vision-Exp 发布 ... DeepSeek-V4-Pro 更新 ... DeepSeek-V3.2","site_name":"DeepSeek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"deepseek-docs/content/zh-cn/updates.md at main · thevibeworks/deepseek-docs · GitHub - ---","url":"https://github.com/thevibeworks/deepseek-docs/blob/main/content/zh-cn/updates.md?plain=1#1","encrypted_content":"00eDmH4lXK246oq8dE3nalXnQAdYsdpkN2KGz6UBc3zQWL2XIeNooINFtNQudrvG1at8BTjIkaZznPWWMdNih8QSdvilrZChUS2mtokb6Bn4scA0U+Dg3RQjY4ocYm8Hdz/ZYngAWhXqbwm33EaX5VcEBiGGUiGhOZx/nFGtWGzAxeQ5ZzpeI2tjlX+MlSlz0ar//aKL2Wx++LQqzhEUS8+Q0wAB9WBG5W0FqqdHdXzNmtwzn4jXH7kjdrRZWl4Q2Fxy+u+E7/HOWQfOa/2l0rML2Ix33tZSfufe8RcoFW1nhwHwsrNju84QcO7T03sLZaXp212pRTPMhmFJtg==","page_age":"2026-10-16T16:00:00+00:00","snippet":"2026-10-17\" ... DeepSeek-V4.1-Flash-1017 更新 DeepSeek V4.1 Flash 已升级至 DeepSeek-V4.1-Flash-1017，官方网页端与 APP 模型也已同步更新至新版本 ... DeepSeek-V4.1-Flash 发布 ... DeepSeek-V4-Pro 更新","site_name":"GitHub","site_icon":"https://cdn.deepseek.com/site-icons/github.com"},{"type":"web_search_result","title":"DeepSeek V4.1 Flash-1017 新版本发布：性能提升、耗时缩短，许愿式编程一键成真","url":"https://m.ithome.com/html/1014328.htm","encrypted_content":"H+bB7/M4dMSEXrIiW/h8edLkbGwdJzUuUqt8R/beDQIqDpRuyGtILKyr5CV+hHyKjCvoofK98borfl9XxbnZChE7/AwYuZ84KkeOnV5NfP0Tc8DLtVw/6LDGcMjCZQJv77e4tK6SiLHiLYPgXA39bgiAiD9I4eyAaXn4bcvczTdoFfAgsAi5eFa/P4J1LM0Bs7qSzWf0xXtctVgObncXQMUEzZ6bhPlo6ymbIpRn2Mtw9yRoLLWnxO+eJcS+C72NjspyuE/ftdiva3XNqmmQkSrSfKRAvkeIJO7izAYGjSJ0OYcVZdorlzamhkNwYS18t8PwkbAWfkDWpjKBXu981NBHeliDR691wV0EiGNyVIb2Na92/89g37A2vqAFvbfA7D5vKhuw0vHf5VkE4b9iin/kJOfGiZ2cCp4KlUqSHfv+cCbWbtpdBbcYlsD5MHtvvnkQSL7kdmVl571Pnce9VC3NTINyZ88=","page_age":"2026-10-16T16:00:00+00:00","snippet":"DeepSeek V4.1 Flash-1017 新版本发布：性能提升 ... 2026-10-17 16 ... IT之家 10 月 17 日消息，DeepSeek V4.1 Flash 现已更新至 V4.1-Flash-1017 版本，官方网页端、APP 与 API 模型已同步变更为新模型（API 调用方式与价格保持不变，仍使用 deepseek-flash 即可访问最新模型）。","site_name":"IT之家","site_icon":"https://cdn.deepseek.com/site-icons/ithome.com"},{"type":"web_search_result","title":"DeepSeek-V3 模型更新","url":"https://api-docs.deepseek.com/zh-cn/news/news250325","encrypted_content":"kVKWnJ0H7C4NesOXka2J93Gz3MVPL2b08MfAPo8Dx+STzhHUmxEN1sEvHRKOLORZmwRtuCQmqUys7KdiKVqOSU7Hd03myvsLxSp9dexDuTx3W2Xu6r3Z5Vytx2fSkuK8FScuWcy9s98YGy3ezbF8NJ4129HrXwTFXCMO6Y/HqcFYiNEhctv1Oq46teaXawPMZsGtVYwkIfPSKukRK7MYcOMSoSa4/bnCtsruoFtsYja3b4PlxLRMbBrFGDqk+krfQpQEOiGYNA2EX5KGefA5pQLdYwLnYk1CpCULlEGDfKpDBTkbqS0t1+UtjvZS7xQmbuXqRNlAPpsDvBIYIIhfWG7CfikPiEACWDLvGkc4wFq7fkPWuXj7AM5eeYPWxgGN5N0s","page_age":null,"snippet":"模型更新，各项能力全面进阶 DeepSeek V3 模型已完成小版本升级，目前版本号 DeepSeek-V3-0324，用户登录官方网页、APP、小程序进入对话界面后，**关闭深度思考**即可体验。API 接口和使用方式保持不变。","site_name":"Deepseek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"DeepSeek V4.1 Flash新版本发布 许愿式编程一键成真 网友怒赞：太上进 超级斩杀线-快科技-科技改变生活","url":"https://m.mydrivers.com/newsview/1158265.html?ref=","encrypted_content":"ZFDiZRFswN6scx3m0PmZEWzHHRdkcIa0jis15CnsLqZ7tvkQnhQlfKv6V6LAljedpfpxPzLMDE3A2xQzxJpSJw/6fuX5SQBd5MXPBDzr4vOF1gA+/4R6TCjSntFYW46JrB2WyNMvlCTYi91u6vLbOv5vUbV6nmsqqsfOJRkzdP09wq+vU0E5V8ZqS1+asY/ckOS/u49M09TS8zGBcWc+RsEEDF2vwbrgmmh8mpbU5+iACsBO1GtE7HZhX/RPMOfw2cK0na5/wlNkjXI9rKlJ6Ej2hxQ4cTLgrqY=","page_age":"2026-10-16T16:00:00+00:00","snippet":"快科技10月17日消息，据DeepSeek官方公众号今日消息，DeepSeek V4.1 Flash现已更新至V4.1-Flash-1017版本，官方网页端、APP与API模型已同步变更为新模型。","site_name":"快科技","site_icon":"https://cdn.deepseek.com/site-icons/mydrivers.com"},{"type":"web_search_result","title":"DeepSeek V4.1 Flash新版本发布-36氪","url":"https://m.36kr.com/newsflashes/4029763615986052","encrypted_content":"HWiwCDAPVoImelwtIcujZiC1Zomwd8UY4jY0Dtw/9+8hD8jaiaDvW1iN4VRsgklYfLPlBTzvVdiF1oq582vG70ClIFhAjwe3EEmQWD/ij0/F/mKz2a6DfL0h6FE4e7Dl1HUB1zEvG523OXz02ddW6PSd+wvrQlt3BCLkCb/efkpN6h+EaOwuNvfXN7/gUeUS9iVezI3K3cGciUHITYJsxwUV/kiFw5j80cDzMOQxrBPcqHcV7VORKeV/ffT8Hsk/m0US2Q==","page_age":"2026-10-16T16:00:00+00:00","snippet":"36氪获悉，据DeepSeek消息，DeepSeek V4.1 Flash现已更新至V4.1-Flash-1017版本，官方网页端、App与API模型已同步变更为新模型。 原文链接","site_name":"36kr","site_icon":"https://cdn.deepseek.com/site-icons/36kr.com"},{"type":"web_search_result","title":"DeepSeek-V3 模型更新，各项能力全面进阶 | DeepSeek API Docs","url":"https://api-docs.deepseek.com/zh-cn/news/news250325/","encrypted_content":"tGmdAH/cADcaDHZJD63CipqtMSlGPzWAEZNnUQqVStwQoPKJmYaM8rFpNElY8MBpWWB4zM3d97Sf/FY+Aw44ooWI2QUwlH4d49FT+y/EcRicqbdHId54PG3qoabw7SXfXwQOUwghOH024zlYfNAgGhN4Luhf/3jpF8tFkyWrjlLN39TnqTllUCvawGjTrW26BMEny9nOymZYK4EUbpGjLI/mAI4xUZU7ggkUuWa7RHqJmP4RLVF8TcHWcigcJYqXu8moPJxgwJehsVfYvEbJs3lqfp6axbVrbr6tVbEzH6LFThLYRlJk15uUey4kngKk/9Cx7nXZ+r9FCG0i0lkEY0AM1Jkfh5uh4/bVLk3N1Pe/WRX406oO9MkoVQVeEeWND89CLEBOpaSAh/c=","page_age":"2025-03-24T16:00:00+00:00","snippet":"DeepSeek-V3 模型更新，各项能力全面进阶 DeepSeek V3 模型已完成小版本升级，目前版本号 DeepSeek-V3-0324，用户登录官方网页、APP、小程序进入对话界面后，关闭深度思考即可体验。API 接口和使用方式保持不变。","site_name":"DeepSeek","site_icon":"https://cdn.deepseek.com/site-icons/deepseek.com"},{"type":"web_search_result","title":"DeepSeek V4.1 Flash 新版本：许愿式编程一键成真","url":"https://tech.ifeng.com/c/8xIZ18XToYQ","encrypted_content":"pp+/6AxS0sncN2KivOfrxL2NpeSrQAon3seoYuxenrlr0u5G3CU/vMNvATKQQYvAGFhgsDBTxTd5cn0xJdgRwu5YJj7XpaVKYjEGtMjYpn3Psy1h6IqwRQ2EcBZZ1NzXHZ/WN4tBXKGwOqvE+HvmXrLwFcQSV/T3j1fzUN/ySrEDGPUcbVfA45blTSPJjKTRuolTja3yjf0+5BouwVoi4UuTRg7dln1GPQjqB9VH51lgScZ/FGtfilvFbL5Vtkm4lHl1iw+36muVl6iY4EVPFeSPgaaCqqbZfgMs/0TNTa/rcBaJfCbm921rur5ismdYItJmwxcr3NeGOJn6tQjc+h7S+xweJ3WaEADKVaaPnEFvBoB5GK5xYRk+DRO+Qk6TDv6N4hjIN+L3+a0khH7bG2t3+5mO7dD3hMy7fPNNksoWMNZ8zPFABCaWmvDa/LKnJn0U/zkbTc8BF+XqhWGJvQHxT6YV+srOwFWZaa6fF2zfYXJy4ef1mPVKtQpcu4UR0wFHiw2nvaXvgb2LtvYky2xNyrBAFY3mfzg6oYMyroZyusInPXT6rygU5C+6huK2gM4vfBwQpOHeSNu+l705Yoy9vEKzE3tX0SgNPRlDxU9IzV+R7oNrOXQKoKHeJtH3Xmmafw==","page_age":"2026-10-16T16:00:00+00:00","snippet":"DeepSeek V4.1 Flash 现已更新至 V4.1-Flash-1017 版本，官方网页端、APP 与 API 模型已同步变更为新模型。  性能–费用的帕累托改进  相比上一版本的 DeepSeek V4.1 Flash，新模型在各方面的基准测试中取得了长足的提升。  在提升性能的同时，我们还缩短了模型的任务运行时间与输出长度，让用户能够以更低成本、更快速度完成任务（如下图所示），在多个","site_name":"凤凰网科技","site_icon":"https://cdn.deepseek.com/site-icons/ifeng.com"}],"kind":"search"}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":1}
+
+event: content_block_start
+data: {"type":"content_block_start","index":2,"content_block":{"type":"text","text":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"根据"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":" Deep"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"Se"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"ek"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":" "}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"官方"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"更新"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"日志"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"，"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"目前"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"最新的"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"模型"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"版本"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"号"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"是"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":" **"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"Deep"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"Se"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"ek"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"-V"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"4"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"."}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"1"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"-F"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"lash"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"-"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"101"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"7"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":"**"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"text_delta","text":" "}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://api-docs.deepseek.com/zh-cn/updates.md","title":"更新日志","encrypted_index":"","cited_text":"根据 DeepSeek 官方更新日志，目前最新的模型版本号是 **DeepSeek-V4.1-Flash-1017**"}}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://api-docs.deepseek.com/zh-cn/news/news261017/#1","title":"DeepSeek V4.1 Flash 新版本：许愿式编程一键成真 | DeepSeek API Docs - DeepSeek 全家桶应用 API 已发布：联网搜索、文件输入、阅读链接、模型安全、ASR、TTS 等，点此查看使用指南","encrypted_index":"","cited_text":"根据 DeepSeek 官方更新日志，目前最新的模型版本号是 **DeepSeek-V4.1-Flash-1017**"}}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":2,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://api-docs.deepseek.com/zh-cn/updates.md#1","title":"更新日志 - 更新日志","encrypted_index":"","cited_text":"根据 DeepSeek 官方更新日志，目前最新的模型版本号是 **DeepSeek-V4.1-Flash-1017**"}}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":2}
+
+event: content_block_start
+data: {"type":"content_block_start","index":3,"content_block":{"type":"text","text":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"。\n\n"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"该"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"版本"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"已"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"同步"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"更新"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"至"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"官方"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"网页"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"端"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"、"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"APP"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" "}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"以及"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" API"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" "}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":"模型"}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"text_delta","text":" "}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://api-docs.deepseek.com/zh-cn/news/news261017/#1","title":"DeepSeek V4.1 Flash 新版本：许愿式编程一键成真 | DeepSeek API Docs - DeepSeek 全家桶应用 API 已发布：联网搜索、文件输入、阅读链接、模型安全、ASR、TTS 等，点此查看使用指南","encrypted_index":"","cited_text":"。\n\n该版本已同步更新至官方网页端、APP 以及 API 模型"}}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://m.ithome.com/html/1014328.htm","title":"DeepSeek V4.1 Flash-1017 新版本发布：性能提升、耗时缩短，许愿式编程一键成真","encrypted_index":"","cited_text":"。\n\n该版本已同步更新至官方网页端、APP 以及 API 模型"}}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":3,"delta":{"type":"citations_delta","citation":{"type":"web_search_result_location","url":"https://m.mydrivers.com/newsview/1158265.html?ref=","title":"DeepSeek V4.1 Flash新版本发布 许愿式编程一键成真 网友怒赞：太上进 超级斩杀线-快科技-科技改变生活","encrypted_index":"","cited_text":"。\n\n该版本已同步更新至官方网页端、APP 以及 API 模型"}}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":3}
+
+event: content_block_start
+data: {"type":"content_block_start","index":4,"content_block":{"type":"text","text":""}}
+
+event: content_block_delta
+data: {"type":"content_block_delta","index":4,"delta":{"type":"text_delta","text":"。"}}
+
+event: content_block_stop
+data: {"type":"content_block_stop","index":4}
+
+event: message_delta
+data: {"type":"message_delta","delta":{"stop_reason":"end_turn","stop_sequence":null},"usage":{"input_tokens":4658,"cache_creation_input_tokens":0,"cache_read_input_tokens":0,"output_tokens":71,"service_tier":"standard","server_tool_use":{"web_search_requests":1,"web_fetch_requests":0,"tool_search":2,"tool_fetch":0,"tool_image_search":0},"output_tokens_details":{"thinking_tokens":0,"safety_tokens":0}}}
+
+event: message_stop
+data: {"type":"message_stop"}
+
+
