@@ -1,0 +1,200 @@
+package art.kaogong.xiaonian.ui.drawer
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Edit
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Search
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.Tune
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.components.CircleIconButton
+import art.kaogong.xiaonian.ui.model.ConversationSummary
+import art.kaogong.xiaonian.ui.theme.XiaonianColors
+
+/**
+ * 左侧抽屉。结构与截图一致：标题 + 功能区 → 分隔线 → 会话历史 → 底部主操作。
+ * P0 里功能项先不跳转，重点是把版式与层级做对。
+ */
+@Composable
+fun XiaonianDrawer(
+    conversations: List<ConversationSummary>,
+    activeId: String?,
+    onSelect: (ConversationSummary) -> Unit,
+    onNewChat: () -> Unit,
+) {
+    ModalDrawerSheet(
+        modifier = Modifier.width(320.dp),
+        drawerContainerColor = XiaonianColors.Canvas,
+        drawerShape = RoundedCornerShape(topEnd = 26.dp, bottomEnd = 26.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 18.dp),
+        ) {
+            Spacer(Modifier.height(26.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = "小念",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = XiaonianColors.Ink,
+                )
+                Spacer(Modifier.weight(1f))
+                CircleIconButton(
+                    icon = Icons.Outlined.Search,
+                    contentDescription = "搜索会话",
+                    onClick = {},
+                )
+            }
+
+            Spacer(Modifier.height(18.dp))
+
+            DrawerMenuRow(Icons.Outlined.Schedule, "定时任务")
+            DrawerMenuRow(Icons.Outlined.FolderOpen, "资料空间")
+            DrawerMenuRow(Icons.Outlined.Tune, "自定义")
+            DrawerMenuRow(Icons.Outlined.Settings, "设置")
+
+            Spacer(Modifier.height(14.dp))
+            HorizontalDivider(color = XiaonianColors.Divider)
+            Spacer(Modifier.height(10.dp))
+
+            conversations.forEach { item ->
+                DrawerConversationRow(
+                    item = item,
+                    selected = item.id == activeId,
+                    onClick = { onSelect(item) },
+                )
+            }
+
+            Text(
+                text = "查看全部…",
+                style = MaterialTheme.typography.bodyMedium,
+                color = XiaonianColors.InkTertiary,
+                modifier = Modifier.padding(vertical = 12.dp),
+            )
+
+            Spacer(Modifier.weight(1f))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Row(
+                    modifier = Modifier
+                        .clip(CircleShape)
+                        .background(XiaonianColors.Accent)
+                        .clickable(onClick = onNewChat)
+                        .padding(horizontal = 20.dp, vertical = 13.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Edit,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = "新对话",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = Color.White,
+                    )
+                }
+
+                Spacer(Modifier.weight(1f))
+
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(XiaonianColors.SurfaceMuted),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "念",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = XiaonianColors.InkSecondary,
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(22.dp))
+        }
+    }
+}
+
+@Composable
+private fun DrawerMenuRow(icon: ImageVector, label: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable {}
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = XiaonianColors.Ink,
+            modifier = Modifier.size(22.dp),
+        )
+        Spacer(Modifier.width(14.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = XiaonianColors.Ink,
+        )
+    }
+}
+
+@Composable
+private fun DrawerConversationRow(
+    item: ConversationSummary,
+    selected: Boolean,
+    onClick: () -> Unit,
+) {
+    Text(
+        text = item.title,
+        style = MaterialTheme.typography.bodyLarge,
+        color = if (selected) XiaonianColors.Ink else XiaonianColors.InkSecondary,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(vertical = 11.dp),
+    )
+}
