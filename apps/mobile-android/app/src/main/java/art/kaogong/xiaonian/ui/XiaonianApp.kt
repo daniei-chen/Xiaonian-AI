@@ -27,7 +27,7 @@ import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
 import art.kaogong.xiaonian.ui.model.ChatMode
-import art.kaogong.xiaonian.ui.settings.ServerSettingsDialog
+import art.kaogong.xiaonian.ui.settings.ApiSettingsDialog
 import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
 import art.kaogong.xiaonian.ui.voice.VoicePlayer
 import kotlinx.coroutines.launch
@@ -47,7 +47,8 @@ fun XiaonianApp(
     var voiceMode by remember { mutableStateOf(false) }
     var showAttach by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var serverUrl by remember { mutableStateOf(Settings.baseUrl(context)) }
+    var settingsProvider by remember { mutableStateOf(Settings.provider(context)) }
+    var settingsModel by remember { mutableStateOf(Settings.model(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
 
@@ -284,15 +285,22 @@ fun XiaonianApp(
     }
 
     if (showSettings) {
-        ServerSettingsDialog(
-            current = serverUrl,
+        ApiSettingsDialog(
+            provider = settingsProvider,
+            apiKey = Settings.apiKey(context, settingsProvider),
+            model = settingsModel,
             onDismiss = { showSettings = false },
-            onSave = { value ->
-                Settings.setBaseUrl(context, value)
-                serverUrl = Settings.baseUrl(context)
+            onSave = { provider, key, model ->
+                Settings.setProvider(context, provider)
+                Settings.setApiKey(context, provider, key)
+                Settings.setModel(context, model)
+                settingsProvider = provider
+                settingsModel = Settings.model(context)
                 viewModel.refreshConversations()
             },
-            onTest = { value, callback -> viewModel.testConnection(value, callback) },
+            onTest = { provider, key, model, callback ->
+                viewModel.testUpstream(provider, key, model, callback)
+            },
         )
     }
 

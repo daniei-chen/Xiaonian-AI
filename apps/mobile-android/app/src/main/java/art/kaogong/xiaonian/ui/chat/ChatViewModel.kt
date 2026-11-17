@@ -75,7 +75,10 @@ data class ChatUiState(
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     /** 每次请求现取地址，用户在设置里改完立即生效 */
-    private val api = XiaonianApi { Settings.baseUrl(app) }
+    private val api = XiaonianApi { Settings.baseUrl(Settings.provider(app)) }
+
+    /** 全本地直连上游（第一版主路径） */
+    private val chatApi = art.kaogong.xiaonian.data.DirectChatApi()
 
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
@@ -134,10 +137,16 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(error = message) }
     }
 
-    /** 设置页用：探一下**输入框里**的地址能不能通（还没保存的那个） */
-    fun testConnection(baseUrl: String, onResult: (Boolean) -> Unit) {
+    /** 设置页用：验证密钥是否能通（只读请求，不消耗额度） */
+    fun testUpstream(
+        provider: String,
+        apiKey: String,
+        model: String,
+        onResult: (Boolean, String) -> Unit,
+    ) {
         viewModelScope.launch {
-            onResult(XiaonianApi { baseUrl }.healthz())
+            val (ok, message) = chatApi.verify(provider, Settings.baseUrl(provider), apiKey)
+            onResult(ok, message)
         }
     }
 
@@ -355,6 +364,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                     when (event) {
                         is ChatStreamEvent.Accepted -> remoteAssistantId = event.assistantMessageId
                         is ChatStreamEvent.Started -> Unit
+                        is ChatStreamEvent.BlockStart -> Unit
+                        is ChatStreamEvent.Usage -> Unit
                         is ChatStreamEvent.TextDelta ->
                             updateMessage(localAssistantId) { it.copy(text = it.text + event.text) }
                         is ChatStreamEvent.ReasoningDelta ->

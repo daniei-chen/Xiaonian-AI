@@ -95,12 +95,21 @@ private data class ConversationListDto(val items: List<ConversationDto> = emptyL
 
 // ---------------------------------------------------------------- 流式事件
 
+@Serializable
+data class UsageDto(
+    val inputTokens: Int = 0,
+    val outputTokens: Int = 0,
+    val thinkingTokens: Int = 0,
+)
+
 sealed interface ChatStreamEvent {
     data class Accepted(val assistantMessageId: String) : ChatStreamEvent
     data class Started(val provider: String, val model: String) : ChatStreamEvent
+    data class BlockStart(val index: Int, val block: BlockDto) : ChatStreamEvent
     data class TextDelta(val index: Int, val text: String) : ChatStreamEvent
     data class ReasoningDelta(val index: Int, val text: String) : ChatStreamEvent
     data class Citations(val items: List<CitationDto>) : ChatStreamEvent
+    data class Usage(val usage: UsageDto) : ChatStreamEvent
     data class Completed(val messageId: String, val canContinue: Boolean) : ChatStreamEvent
     data class Failed(val code: String, val message: String) : ChatStreamEvent
 }

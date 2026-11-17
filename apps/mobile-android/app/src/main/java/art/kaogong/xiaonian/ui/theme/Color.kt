@@ -3,8 +3,11 @@ package art.kaogong.xiaonian.ui.theme
 import androidx.compose.ui.graphics.Color
 
 /**
- * 从 ChatGPT Android 当前版本截图取色。
- * 这一组是小念的视觉基线：几乎没有色，唯一的彩色是紫色强调。
+ * 从 ChatGPT Android 的 APK 资源里取到的精确品牌色
+ * （`res/values/colors.xml`：colorPrimary / colorPrimaryVariant / colorSecondary），
+ * 其余中性色沿用截图取色。
+ *
+ * 注意：新版 ChatGPT 是紫色主题，不是老版的绿色 #10A37F。
  */
 object XiaonianColors {
     /** 主文字：近黑，不用纯黑以免发闷 */
@@ -27,7 +30,12 @@ object XiaonianColors {
 
     val Divider = Color(0xFFE8E8EA)
 
-    /** 唯一强调色 */
-    val Accent = Color(0xFF8B5CF6)
-    val AccentDeep = Color(0xFF7C3AED)
+    /** 唯一强调色 —— ChatGPT 的 colorPrimary */
+    val Accent = Color(0xFF4700EB)
+
+    /** 按下态 / 深色变体 —— colorPrimaryVariant */
+    val AccentDeep = Color(0xFF3000BB)
+
+    /** 浅紫，用于选中底、角标 —— colorSecondary */
+    val AccentSoft = Color(0xFFAA85FF)
 }
