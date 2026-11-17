@@ -26,6 +26,7 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -61,6 +62,8 @@ fun Composer(
     onVoiceInput: () -> Unit,
     onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
+    onToggleSearch: () -> Unit = {},
+    searchOn: Boolean = false,
     modifier: Modifier = Modifier,
     recording: Boolean = false,
     transcribing: Boolean = false,
@@ -126,6 +129,22 @@ fun Composer(
                     }
                 },
             )
+
+            // 联网搜索：截图里是输入条内的蓝色圆圈图标
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .clickable(onClick = onToggleSearch),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Search,
+                    contentDescription = if (searchOn) "关闭联网搜索" else "联网搜索",
+                    tint = if (searchOn) LocalAccent.current.accent else LocalPalette.current.ink,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
 
             // 录音中给一层浅红底 + 红色图标，转录中禁用点击
             Box(

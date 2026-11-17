@@ -58,6 +58,7 @@ fun ChatScreen(
     onSpeak: (String) -> Unit,
     onRemoveAttachment: (String) -> Unit = {},
     onDismissError: () -> Unit = {},
+    onToggleWebSearch: () -> Unit = {},
 ) {
     Scaffold(
         containerColor = LocalPalette.current.canvas,
@@ -82,6 +83,8 @@ fun ChatScreen(
                 onVoiceInput = onVoiceInput,
                 onOpenVoiceMode = onOpenVoiceMode,
                 onAttach = onAttach,
+                onToggleSearch = onToggleWebSearch,
+                searchOn = state.webSearch,
                 recording = state.recording,
                 transcribing = state.transcribing,
                 attachments = state.attachments,
