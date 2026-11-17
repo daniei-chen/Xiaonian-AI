@@ -36,8 +36,8 @@ const openSse = (raw: ServerResponse): SendEvent => {
 }
 
 /**
- * 回传给上游的历史：正文、文件引用、图片引用。
- * 思考块不回传（各 provider 语义不一致，且会显著抬高成本）。
+ * 回传给上游的历史：正文、带签名的思考块、文件与图片引用。
+ * 没签名的思考块不能带——上游会校验签名，带上反而 400。
  */
 const toChatMessages = (messages: Message[]): ChatMessage[] =>
   messages
@@ -45,7 +45,11 @@ const toChatMessages = (messages: Message[]): ChatMessage[] =>
     .map((m) => ({
       role: (m.role === 'user' ? 'user' : 'assistant') as ChatMessage['role'],
       blocks: m.blocks.filter(
-        (b) => b.type === 'text' || b.type === 'file' || b.type === 'image',
+        (b) =>
+          b.type === 'text' ||
+          b.type === 'file' ||
+          b.type === 'image' ||
+          (b.type === 'reasoning' && Boolean(b.signature)),
       ),
     }))
     .filter((m) => m.blocks.length > 0)
@@ -354,6 +358,14 @@ export const registerConversationRoutes = (
             citations.push(...ev.citations)
             send('citations', { items: ev.citations })
             break
+          case 'signature': {
+            // 签名挂回思考块，下一轮才能原样回传给上游
+            const target = blocks[ev.index]
+            if (target && target.type === 'reasoning') {
+              blocks[ev.index] = { ...target, signature: ev.signature }
+            }
+            break
+          }
           case 'usage':
             usage = ev.usage
             break

@@ -97,6 +97,10 @@ const toAnthropicMessages = (input: ChatInput): Array<{ role: string; content: u
     for (const b of m.blocks) {
       if (b.type === 'text') {
         plain += b.text
+      } else if (b.type === 'reasoning' && b.signature) {
+        // 只有带签名的思考块才能回传：上游会用签名校验，缺签名直接 400
+        parts.push({ type: 'thinking', thinking: b.text, signature: b.signature })
+        hasRef = true
       } else if (b.type === 'image') {
         parts.push({ type: 'image', source: { type: 'file', file_id: b.fileId } })
         hasRef = true
@@ -210,6 +214,9 @@ export class AnthropicChatCapability implements ChatCapability {
         case 'citations':
           // complete() 不把引用塞进 blocks，调用方按需从 stream 拿
           break
+        case 'signature':
+          // 同上：complete() 不重建思考签名
+          break
         case 'finish':
           finishReason = ev.finishReason
           break
@@ -314,6 +321,9 @@ export class AnthropicChatCapability implements ChatCapability {
             yield { type: 'text_delta', index: mapped, text: d.text }
           } else if (d?.type === 'thinking_delta' && d.thinking) {
             yield { type: 'reasoning_delta', index: mapped, text: d.thinking }
+          } else if (d?.type === 'signature_delta' && d.signature) {
+            // 思考块的签名在块结束前下发，必须存下来供下一轮回传
+            yield { type: 'signature', index: mapped, signature: d.signature }
           } else if (d?.type === 'citations_delta' && d.citation?.url) {
             // 引用按 url 去重，序号按首次出现顺序编
             if (!citations.some((c) => c.url === d.citation?.url)) {

@@ -61,6 +61,8 @@ export type ChatStreamEvent =
   | { type: 'reasoning_delta'; index: number; text: string }
   /** 引用不是正文，单独一条事件；前端据此渲染来源卡片 */
   | { type: 'citations'; citations: Citation[] }
+  /** 思考块的签名，必须在后续请求里原样回传，否则上游会拒绝 */
+  | { type: 'signature'; index: number; signature: string }
   | { type: 'usage'; usage: UsageSummary }
   | { type: 'finish'; finishReason: ChatOutput['finishReason'] }
 

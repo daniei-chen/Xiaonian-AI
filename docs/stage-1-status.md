@@ -8,8 +8,8 @@
 | # | 目标 | 状态 | 实现位置 | 验证方式 |
 |---|---|---|---|---|
 | 1 | 聊天 | ✅ | `POST /conversations/:id/messages`（SSE）+ Android 流式渲染 | 26 个 delta 落库，seq 连续 |
-| 2 | 深度思考 | ✅ | `thinking` + `effort`(high/max) 透传；UI 折叠展示思考块 | anthropic 通道 thinking_delta 解析 |
-| 3 | 搜索 | ✅ | `DeepSeekSearchCapability` → `/v1/tools/search` | 3 条结构化结果（admin 200） |
+| 2 | 深度思考 | ✅ | `thinking` + `effort`(high/max)；思考块带 signature 回传 | 两轮思考对话，第二轮无 400，reasoning 94ch + signature YES |
+| 3 | 搜索 | ✅ | `DeepSeekSearchCapability` → `/v1/tools/search`，**不再透传上游 tools** | 8 条引用 + 回答带 `[2][4]` 标记 |
 | 4 | 深度搜索 | ✅ | `apps/gateway/src/search/deep-search.ts` 自建 loop | 8 条引用 + 回答带 `[2][7]` 标记 |
 | 5 | 读链接 | ✅ | `DeepSeekFetchCapability` → `/v1/tools/fetch`；UI 从剪贴板取 URL | 2583 字符正文 + 标题 |
 | 6 | 文件问答 | ✅ | `/api/v1/files` → DeepSeek Files API，`file_id` 引用 | 上传 PNG 问 secret word，答 PANGOLIN |
@@ -20,15 +20,16 @@
 | 11 | 历史导入 | ✅ | `src/lib/zip.ts` 读写 + `/api/v1/export` `/import` | 7 会话 17 消息 → 13.5 KB → 导入计数一致 |
 | 12 | 移动端使用 | ✅ | Compose + OkHttp，`10.0.2.2:8788` | 真机/模拟器可装可跑 |
 
-## 与 DeepSeek App 的两处差异（有意为之）
+## 实现要点
 
-1. **思考块不回传上游。** 多轮对话时只回传正文与文件引用。各 provider 的
-   reasoning 语义不一致（Anthropic 要 signature、OpenAI 无标准字段），回传
-   容易触发 400，且显著抬高 token 成本。代价是模型看不到自己上一轮的思考过程。
+1. **思考块回传带签名。** Anthropic 协议要求 thinking 块连同 `signature`（即该次
+   响应的消息 id）一起回传，缺签名会被拒绝。所以流式时收集 `signature_delta` 并挂
+   回思考块，历史里只回传**带签名**的思考块——没签名的（比如 OpenAI 通道返回的）
+   直接丢弃，否则上游报 400。
 
-2. **深度搜索不用上游 server-tools。** `webSearch` 走 DeepSeek 服务端工具（我们
-   看不到中间过程、换不了搜索源）；`deepSearch` 走自己的能力层 loop（搜→抓正文
-   →编号）。两者在 UI 上互斥。**要做可信引用就用 deepSearch。**
+2. **两条搜索路都是自己的实现。** `webSearch` 与 `deepSearch` 现在共用同一套
+   capability 层 loop，唯一区别是抓不抓正文（`maxFetch` 0 vs 3）。不再有
+   "把 tools 透传给上游" 的路径，因此搜索可以在配置里换成 anysearch 之类的 provider。
 
 ## 架构现状（重要）
 
