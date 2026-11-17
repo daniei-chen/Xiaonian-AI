@@ -79,6 +79,36 @@ fun XiaonianApp(
         }
     }
 
+    /** 导出：先拿字节，再弹系统保存框 */
+    var pendingExport by remember { mutableStateOf<ByteArray?>(null) }
+
+    val exportLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/zip"),
+    ) { uri ->
+        val bytes = pendingExport
+        pendingExport = null
+        if (uri != null && bytes != null) {
+            runCatching {
+                context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+            }
+        }
+    }
+
+    val importLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            readUri(context, uri)?.let { (bytes, _, _) -> viewModel.importHistory(bytes) }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        viewModel.exportBytes.collect { bytes ->
+            pendingExport = bytes
+            exportLauncher.launch("xiaonian-history.zip")
+        }
+    }
+
     // 转录回来填进输入框，不自动发送
     LaunchedEffect(transcript) {
         transcript?.let { text ->
@@ -164,6 +194,13 @@ fun XiaonianApp(
                     viewModel.newConversation()
                     input = ""
                     scope.launch { drawerState.close() }
+                },
+                onExport = {
+                    viewModel.exportHistory()
+                    scope.launch { drawerState.close() }
+                },
+                onImport = {
+                    importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
             )
         },

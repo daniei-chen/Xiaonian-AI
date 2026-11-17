@@ -48,6 +48,8 @@ fun XiaonianDrawer(
     activeId: String?,
     onSelect: (ConversationDto) -> Unit,
     onNewChat: () -> Unit,
+    onExport: () -> Unit,
+    onImport: () -> Unit,
 ) {
     ModalDrawerSheet(
         modifier = Modifier.width(320.dp),
@@ -87,8 +89,15 @@ fun XiaonianDrawer(
 
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(color = XiaonianColors.Divider)
-            Spacer(Modifier.height(10.dp))
+            Spacer(Modifier.height(4.dp))
 
+            // 放在会话列表之前：列表很长时贴底的按钮会被挤出可视区
+            DrawerAction("导出历史", onExport)
+            DrawerAction("导入历史", onImport)
+
+            Spacer(Modifier.height(4.dp))
+            HorizontalDivider(color = XiaonianColors.Divider)
+            Spacer(Modifier.height(10.dp))
             conversations.forEach { item ->
                 DrawerConversationRow(
                     item = item,
@@ -152,6 +161,21 @@ fun XiaonianDrawer(
             Spacer(Modifier.height(22.dp))
         }
     }
+}
+
+/** 抽屉底部的次级操作：低饱和、无图标，避免和会话列表抢视线 */
+@Composable
+private fun DrawerAction(label: String, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.bodyMedium,
+        color = XiaonianColors.InkSecondary,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+    )
 }
 
 @Composable

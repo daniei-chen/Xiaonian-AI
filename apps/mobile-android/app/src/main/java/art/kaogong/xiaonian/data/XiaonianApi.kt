@@ -85,6 +85,12 @@ data class FileRef(
 )
 
 @Serializable
+data class ImportResultDto(
+    val conversations: Int = 0,
+    val messages: Int = 0,
+)
+
+@Serializable
 private data class ConversationListDto(val items: List<ConversationDto> = emptyList())
 
 // ---------------------------------------------------------------- 流式事件
@@ -200,6 +206,28 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
                 response.body?.bytes() ?: ByteArray(0)
             }
         }
+
+    /** 导出全部历史为 ZIP 字节 */
+    suspend fun exportHistory(): ByteArray = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url("/api/v1/export")).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("export failed: ${response.code}")
+            response.body?.bytes() ?: ByteArray(0)
+        }
+    }
+
+    /** 导入 ZIP 历史，返回新建的会话与消息数 */
+    suspend fun importHistory(bytes: ByteArray): ImportResultDto = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(url("/api/v1/import"))
+            .post(bytes.toRequestBody("application/octet-stream".toMediaType()))
+            .build()
+        client.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) throw IOException("import failed: ${response.code}")
+            json.decodeFromString(ImportResultDto.serializer(), body)
+        }
+    }
 
     fun streamMessage(
         conversationId: String,

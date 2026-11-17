@@ -10,6 +10,10 @@ import { registerAsrRoutes } from './routes/asr.js'
 import { registerConversationRoutes } from './routes/conversations.js'
 import { registerFileRoutes } from './routes/files.js'
 import { registerTtsRoutes } from './routes/tts.js'
+import { registerTransferRoutes } from './routes/transfer.js'
+
+/** P0 先固定单用户；生产环境由 spec 8.1 的认证层替换 */
+const DEV_USER_ID = '00000000-0000-4000-8000-000000000001'
 
 export interface AppDeps {
   env: Env
@@ -46,8 +50,14 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
 
   await app.register(cors, { origin: true })
 
-  // 二进制 body（音频 / 文件上传）统一在这里注册，避免两个路由重复注册同一类型
-  for (const type of ['audio/wav', 'audio/x-wav', 'audio/ogg', 'application/octet-stream']) {
+  // 二进制 body（音频 / 文件上传 / zip 导入）统一在这里注册，避免重复注册
+  for (const type of [
+    'audio/wav',
+    'audio/x-wav',
+    'audio/ogg',
+    'application/octet-stream',
+    'application/zip',
+  ]) {
     app.addContentTypeParser(type, { parseAs: 'buffer' }, (_req, body, done) => {
       done(null, body)
     })
@@ -80,6 +90,7 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   registerAsrRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
   registerFileRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
   registerTtsRoutes(app, { baseURL: caps.config.tts?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
+  registerTransferRoutes(app, { db, userId: DEV_USER_ID })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

@@ -348,6 +348,35 @@ class ChatViewModel(
         )
     }
 
+    /** 导出结果：UI 收到后弹系统保存框 */
+    private val _exportBytes = MutableSharedFlow<ByteArray>(extraBufferCapacity = 1)
+    val exportBytes: SharedFlow<ByteArray> = _exportBytes.asSharedFlow()
+
+    fun exportHistory() {
+        viewModelScope.launch {
+            runCatching { api.exportHistory() }
+                .onSuccess { bytes -> if (bytes.isNotEmpty()) _exportBytes.emit(bytes) }
+                .onFailure { e ->
+                    _state.update { it.copy(error = "导出失败：${e.message}") }
+                }
+        }
+    }
+
+    fun importHistory(bytes: ByteArray) {
+        viewModelScope.launch {
+            runCatching { api.importHistory(bytes) }
+                .onSuccess { result ->
+                    _state.update {
+                        it.copy(error = "已导入 ${result.conversations} 个会话、${result.messages} 条消息")
+                    }
+                    refreshConversations()
+                }
+                .onFailure { e ->
+                    _state.update { it.copy(error = "导入失败：${e.message}") }
+                }
+        }
+    }
+
     /** 接着最后一条回答继续写 */
     fun continueGeneration() {
         if (_state.value.messages.none { !it.fromUser && it.text.isNotBlank() }) return
