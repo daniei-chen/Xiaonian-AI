@@ -2,6 +2,7 @@ package art.kaogong.xiaonian.ui.drawer
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,9 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.AddCircleOutline
+import androidx.compose.material.icons.outlined.Apps
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material.icons.outlined.Settings
@@ -39,17 +44,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
-import art.kaogong.xiaonian.ui.components.CircleIconButton
 import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.LocalPalette
-import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
- * 左侧抽屉。结构与截图一致：标题 + 功能区 → 分隔线 → 会话历史 → 底部主操作。
- * P0 里功能项先不跳转，重点是把版式与层级做对。
+ * 侧边抽屉（按真机截图重构）。
+ *
+ * 结构：标题 + 搜索圆钮 → 六个入口 → 分割线 → 会话列表 → 底部胶囊按钮
+ *
+ * 六个入口里「资料空间」和「设置」有真实落点，其余是 ChatGPT 的功能，
+ * 本地版没有对应实现 —— 点了给明确提示，不做假动作。
  */
 @Composable
 fun XiaonianDrawer(
@@ -60,11 +68,12 @@ fun XiaonianDrawer(
     onOpenSettings: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
+    onOpenVoiceMode: () -> Unit,
+    onNotice: (String) -> Unit,
 ) {
     var searching by remember { mutableStateOf(false) }
     var query by remember { mutableStateOf("") }
 
-    // 空查询显示全部；否则按标题过滤（消息内容搜索需要 FTS，后面再说）
     val shown = remember(conversations, query) {
         if (query.isBlank()) {
             conversations
@@ -81,9 +90,9 @@ fun XiaonianDrawer(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 18.dp),
+                .padding(horizontal = 16.dp),
         ) {
-            Spacer(Modifier.height(26.dp))
+            Spacer(Modifier.height(20.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -92,20 +101,19 @@ fun XiaonianDrawer(
                 Text(
                     text = "小念",
                     style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.SemiBold,
                     color = LocalPalette.current.ink,
                 )
                 Spacer(Modifier.weight(1f))
-                CircleIconButton(
+                RoundIcon(
                     icon = if (searching) Icons.Outlined.Close else Icons.Outlined.Search,
-                    contentDescription = if (searching) "关闭搜索" else "搜索会话",
-                    onClick = {
-                        searching = !searching
-                        if (!searching) query = ""
-                    },
-                )
+                    description = if (searching) "关闭搜索" else "搜索会话",
+                ) {
+                    searching = !searching
+                    if (!searching) query = ""
+                }
             }
 
-            // 搜索展开后才占位，平时不挤列表
             if (searching) {
                 Spacer(Modifier.height(10.dp))
                 TextField(
@@ -126,51 +134,67 @@ fun XiaonianDrawer(
                 )
             }
 
-            Spacer(Modifier.height(18.dp))
-
-            DrawerMenuRow(Icons.Outlined.Settings, "设置", onClick = onOpenSettings)
-
             Spacer(Modifier.height(14.dp))
-            HorizontalDivider(color = LocalPalette.current.divider)
-            Spacer(Modifier.height(4.dp))
 
-            // 放在会话列表之前：列表很长时贴底的按钮会被挤出可视区
-            DrawerAction("导出历史", onExport)
-            DrawerAction("导入历史", onImport)
+            // 六个入口（截图顺序）
+            MenuRow(Icons.Outlined.AddCircleOutline, "水豚噜噜", badge = true) {
+                onNotice("自定义角色还没做，这一项先占位")
+            }
+            MenuRow(Icons.Outlined.Schedule, "定时任务") {
+                onNotice("定时任务需要后台调度，本地版没做")
+            }
+            MenuRow(Icons.Outlined.FolderOpen, "资料空间") {
+                onNotice("资料空间还没做，附件目前在对话里逐条上传")
+            }
+            MenuRow(Icons.Outlined.Tune, "自定义") { onOpenSettings() }
+            MenuRow(Icons.Outlined.Code, "Codex") {
+                onNotice("Codex 是 ChatGPT 的代码代理，这里没有")
+            }
+            MenuRow(Icons.Outlined.Apps, "查看更多") {
+                onNotice("没有更多功能了，就这些")
+            }
 
-            Spacer(Modifier.height(4.dp))
+            Spacer(Modifier.height(6.dp))
             HorizontalDivider(color = LocalPalette.current.divider)
-            Spacer(Modifier.height(10.dp))
-            if (shown.isEmpty() && query.isNotBlank()) {
+            Spacer(Modifier.height(8.dp))
+
+            if (shown.isEmpty()) {
                 Text(
-                    text = "没有匹配的会话",
+                    text = if (query.isBlank()) "还没有会话" else "没有匹配的会话",
                     style = MaterialTheme.typography.bodyMedium,
                     color = LocalPalette.current.inkTertiary,
-                    modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp),
+                    modifier = Modifier.padding(vertical = 12.dp, horizontal = 10.dp),
                 )
             }
 
-            shown.forEach { item ->
-                DrawerConversationRow(
-                    item = item,
-                    selected = item.id == activeId,
-                    onClick = { onSelect(item) },
-                )
+            Column(modifier = Modifier.weight(1f)) {
+                shown.forEach { item ->
+                    DrawerConversationRow(
+                        item = item,
+                        selected = item.id == activeId,
+                        onClick = { onSelect(item) },
+                    )
+                }
             }
 
-            Spacer(Modifier.weight(1f))
+            HorizontalDivider(color = LocalPalette.current.divider)
+            Spacer(Modifier.height(10.dp))
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
             ) {
+                // 底部胶囊：新对话
                 Row(
                     modifier = Modifier
+                        .height(46.dp)
                         .clip(CircleShape)
                         .background(LocalAccent.current.accent)
                         .clickable(onClick = onNewChat)
-                        .padding(horizontal = 20.dp, vertical = 13.dp),
+                        .padding(horizontal = 20.dp),
                     verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
                         imageVector = Icons.Outlined.Edit,
@@ -178,9 +202,8 @@ fun XiaonianDrawer(
                         tint = Color.White,
                         modifier = Modifier.size(18.dp),
                     )
-                    Spacer(Modifier.width(8.dp))
                     Text(
-                        text = "新对话",
+                        text = "聊天",
                         style = MaterialTheme.typography.labelLarge,
                         color = Color.White,
                     )
@@ -188,11 +211,15 @@ fun XiaonianDrawer(
 
                 Spacer(Modifier.weight(1f))
 
+                RoundIcon(Icons.Outlined.GraphicEq, "语音对话", onClick = onOpenVoiceMode)
+
+                // 占位头像：本地版没有账号，用设置入口代替
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(42.dp)
                         .clip(CircleShape)
-                        .background(LocalPalette.current.surfaceMuted),
+                        .background(LocalPalette.current.surfaceMuted)
+                        .clickable(onClick = onOpenSettings),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
@@ -203,39 +230,76 @@ fun XiaonianDrawer(
                 }
             }
 
-            Spacer(Modifier.height(22.dp))
+            Spacer(Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(18.dp),
+            ) {
+                Text(
+                    text = "导出历史",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LocalPalette.current.inkTertiary,
+                    modifier = Modifier.clickable(onClick = onExport).padding(vertical = 6.dp),
+                )
+                Text(
+                    text = "导入历史",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LocalPalette.current.inkTertiary,
+                    modifier = Modifier.clickable(onClick = onImport).padding(vertical = 6.dp),
+                )
+                Spacer(Modifier.weight(1f))
+                Text(
+                    text = "设置",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = LocalPalette.current.inkTertiary,
+                    modifier = Modifier.clickable(onClick = onOpenSettings).padding(vertical = 6.dp),
+                )
+            }
+
+            Spacer(Modifier.height(10.dp))
         }
     }
 }
 
-/** 抽屉底部的次级操作：低饱和、无图标，避免和会话列表抢视线 */
 @Composable
-private fun DrawerAction(label: String, onClick: () -> Unit) {
-    Text(
-        text = label,
-        style = MaterialTheme.typography.bodyMedium,
-        color = LocalPalette.current.inkSecondary,
+private fun RoundIcon(
+    icon: ImageVector,
+    description: String,
+    onClick: () -> Unit,
+) {
+    Box(
         modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 12.dp, vertical = 9.dp),
-    )
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(LocalPalette.current.surfaceMuted)
+            .clickable(onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = description,
+            tint = LocalPalette.current.ink,
+            modifier = Modifier.size(20.dp),
+        )
+    }
 }
 
 @Composable
-private fun DrawerMenuRow(
+private fun MenuRow(
     icon: ImageVector,
     label: String,
-    onClick: () -> Unit = {},
+    badge: Boolean = false,
+    onClick: () -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
-            .padding(vertical = 12.dp),
+            .padding(horizontal = 6.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Icon(
             imageVector = icon,
@@ -243,12 +307,20 @@ private fun DrawerMenuRow(
             tint = LocalPalette.current.ink,
             modifier = Modifier.size(22.dp),
         )
-        Spacer(Modifier.width(14.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
             color = LocalPalette.current.ink,
+            modifier = Modifier.weight(1f),
         )
+        if (badge) {
+            Box(
+                modifier = Modifier
+                    .size(7.dp)
+                    .clip(CircleShape)
+                    .background(LocalAccent.current.accent),
+            )
+        }
     }
 }
 
@@ -258,16 +330,27 @@ private fun DrawerConversationRow(
     selected: Boolean,
     onClick: () -> Unit,
 ) {
-    Text(
-        text = item.title ?: "新对话",
-        style = MaterialTheme.typography.bodyLarge,
-        color = if (selected) LocalPalette.current.ink else LocalPalette.current.inkSecondary,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
+    Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
+            .then(
+                if (selected) {
+                    Modifier.background(LocalPalette.current.surfaceMuted)
+                } else {
+                    Modifier
+                }
+            )
             .clickable(onClick = onClick)
-            .padding(vertical = 11.dp),
-    )
+            .padding(horizontal = 8.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = item.title?.takeIf { it.isNotBlank() } ?: "新对话",
+            style = MaterialTheme.typography.bodyMedium,
+            color = if (selected) LocalPalette.current.ink else LocalPalette.current.inkSecondary,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
 }

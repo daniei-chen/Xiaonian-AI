@@ -287,6 +287,11 @@ fun XiaonianApp(
                 onImport = {
                     importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
+                onOpenVoiceMode = {
+                    voiceMode = true
+                    scope.launch { drawerState.close() }
+                },
+                onNotice = { message -> viewModel.reportError(message) },
             )
         },
     ) {
