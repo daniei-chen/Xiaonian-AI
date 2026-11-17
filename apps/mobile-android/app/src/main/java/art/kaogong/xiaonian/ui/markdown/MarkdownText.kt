@@ -1,6 +1,7 @@
 package art.kaogong.xiaonian.ui.markdown
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,6 +78,7 @@ fun MarkdownText(
                     color = XiaonianColors.Divider,
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
+                is MdBlock.Table -> TableBlock(block)
                 is MdBlock.Paragraph -> Text(
                     text = renderInline(block.text, color),
                     style = baseStyle,
@@ -92,9 +94,10 @@ fun MarkdownText(
 sealed interface MdBlock {
     data class Paragraph(val text: String) : MdBlock
     data class Heading(val level: Int, val text: String) : MdBlock
-    data class Bullet(val text: String) : MdBlock
-    data class Ordered(val number: String, val text: String) : MdBlock
+    data class Bullet(val text: String, val level: Int = 0) : MdBlock
+    data class Ordered(val number: String, val text: String, val level: Int = 0) : MdBlock
     data class Code(val language: String?, val code: String) : MdBlock
+    data class Table(val header: List<String>, val rows: List<List<String>>) : MdBlock
     data object Rule : MdBlock
 }
 
@@ -102,6 +105,11 @@ private val HEADING = Regex("^(#{1,6})\\s+(.*)$")
 private val BULLET = Regex("^[-*+]\\s+(.*)$")
 private val ORDERED = Regex("^(\\d{1,3})[.)]\\s+(.*)$")
 private val RULE = Regex("^\\s*([-*_])\\1{2,}\\s*$")
+/** 表格分隔行：|---|---| 或 |:--|--:| */
+private val TABLE_SEP = Regex("^\\s*\\|?\\s*:?-{2,}:?\\s*(\\|\\s*:?-{2,}:?\\s*)*\\|?\\s*$")
+
+private fun splitRow(line: String): List<String> =
+    line.trim().removePrefix("|").removeSuffix("|").split("|").map { it.trim() }
 
 internal fun parseBlocks(markdown: String): List<MdBlock> {
     val out = mutableListOf<MdBlock>()
@@ -140,6 +148,20 @@ internal fun parseBlocks(markdown: String): List<MdBlock> {
             continue
         }
 
+        // 表格：表头行 + 分隔行才算，避免把普通 | 文本误判成表格
+        if (line.trimStart().startsWith("|") && i + 1 < lines.size && TABLE_SEP.matches(lines[i + 1])) {
+            flushParagraph()
+            val header = splitRow(line)
+            val rows = mutableListOf<List<String>>()
+            i += 2
+            while (i < lines.size && lines[i].trimStart().startsWith("|")) {
+                rows += splitRow(lines[i])
+                i++
+            }
+            out += MdBlock.Table(header, rows)
+            continue
+        }
+
         if (RULE.matches(line)) {
             flushParagraph()
             out += MdBlock.Rule
@@ -155,18 +177,23 @@ internal fun parseBlocks(markdown: String): List<MdBlock> {
             continue
         }
 
-        val bullet = BULLET.matchEntire(line)
+        // 列表按缩进分档，每两空格一层，最多四层
+        val indent = line.length - line.trimStart().length
+        val level = (indent / 2).coerceIn(0, 4)
+        val trimmed = line.trimStart()
+
+        val bullet = BULLET.matchEntire(trimmed)
         if (bullet != null) {
             flushParagraph()
-            out += MdBlock.Bullet(bullet.groupValues[1].trim())
+            out += MdBlock.Bullet(bullet.groupValues[1].trim(), level)
             i++
             continue
         }
 
-        val ordered = ORDERED.matchEntire(line)
+        val ordered = ORDERED.matchEntire(trimmed)
         if (ordered != null) {
             flushParagraph()
-            out += MdBlock.Ordered(ordered.groupValues[1], ordered.groupValues[2].trim())
+            out += MdBlock.Ordered(ordered.groupValues[1], ordered.groupValues[2].trim(), level)
             i++
             continue
         }
@@ -294,9 +321,62 @@ private fun CodeBlock(language: String?, code: String) {
     }
 }
 
+/** 表格：等宽列 + 表头底色。Compose 没有内置表格，手搭最省事 */
+@Composable
+private fun TableBlock(block: MdBlock.Table) {
+    val columns = block.header.size.coerceAtLeast(1)
+    val shape = RoundedCornerShape(10.dp)
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(shape)
+            .border(1.dp, XiaonianColors.Divider, shape),
+    ) {
+        Row(modifier = Modifier.background(Color(0xFFF7F7F8))) {
+            block.header.forEach { cell ->
+                Text(
+                    // 单元格里同样会有 **粗体** / `代码`，必须走行内解析
+                    text = renderInline(cell, XiaonianColors.Ink),
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(horizontal = 8.dp, vertical = 7.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = XiaonianColors.Ink,
+                    fontWeight = FontWeight.Bold,
+                )
+            }
+        }
+
+        HorizontalDivider(color = XiaonianColors.Divider)
+
+        block.rows.forEachIndexed { index, row ->
+            Row {
+                for (column in 0 until columns) {
+                    Text(
+                        text = renderInline(row.getOrNull(column).orEmpty(), XiaonianColors.Ink),
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 8.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = XiaonianColors.Ink,
+                    )
+                }
+            }
+            if (index < block.rows.lastIndex) {
+                HorizontalDivider(color = XiaonianColors.Divider.copy(alpha = 0.4f))
+            }
+        }
+    }
+}
+
 @Composable
 private fun BulletRow(block: MdBlock.Bullet, color: Color, baseStyle: TextStyle) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = (block.level * 16).dp),
+    ) {
         Box(
             modifier = Modifier
                 .padding(top = 8.dp)
@@ -311,7 +391,11 @@ private fun BulletRow(block: MdBlock.Bullet, color: Color, baseStyle: TextStyle)
 
 @Composable
 private fun OrderedRow(block: MdBlock.Ordered, color: Color, baseStyle: TextStyle) {
-    Row(modifier = Modifier.fillMaxWidth()) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = (block.level * 16).dp),
+    ) {
         Text(
             text = "${block.number}.",
             style = baseStyle,
