@@ -20,6 +20,8 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            // P0 用 debug 签名，装得上就行；正式发布要换自己的 keystore
+            signingConfig = signingConfigs.getByName("debug")
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }

@@ -29,3 +29,7 @@ coverage/
 *.log
 .DS_Store
 Thumbs.db
+
+# 构建产物不入库
+*.apk
+*.aab

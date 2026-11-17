@@ -107,7 +107,7 @@ sealed interface ChatStreamEvent {
 
 // ---------------------------------------------------------------- API
 
-class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
+class XiaonianApi(private val baseUrlProvider: () -> String = { ApiConfig.BASE_URL }) {
 
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -118,7 +118,16 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
 
     private val jsonMedia = "application/json; charset=utf-8".toMediaType()
 
-    private fun url(path: String) = baseUrl.trimEnd('/') + path
+    /** 每次请求现取：用户在设置里改完地址不用重启 app */
+    private fun url(path: String) = baseUrlProvider().trimEnd('/') + path
+
+    /** 连不上时给用户一个明确的探针 */
+    suspend fun healthz(): Boolean = withContext(Dispatchers.IO) {
+        runCatching {
+            val request = Request.Builder().url(url("/healthz")).get().build()
+            client.newCall(request).execute().use { it.isSuccessful }
+        }.getOrDefault(false)
+    }
 
     suspend fun listConversations(): List<ConversationDto> = withContext(Dispatchers.IO) {
         val request = Request.Builder().url(url("/api/v1/conversations")).get().build()

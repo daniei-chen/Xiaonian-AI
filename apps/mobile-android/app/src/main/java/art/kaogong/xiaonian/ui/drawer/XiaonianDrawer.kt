@@ -48,6 +48,7 @@ fun XiaonianDrawer(
     activeId: String?,
     onSelect: (ConversationDto) -> Unit,
     onNewChat: () -> Unit,
+    onOpenSettings: () -> Unit,
     onExport: () -> Unit,
     onImport: () -> Unit,
 ) {
@@ -85,7 +86,7 @@ fun XiaonianDrawer(
             DrawerMenuRow(Icons.Outlined.Schedule, "定时任务")
             DrawerMenuRow(Icons.Outlined.FolderOpen, "资料空间")
             DrawerMenuRow(Icons.Outlined.Tune, "自定义")
-            DrawerMenuRow(Icons.Outlined.Settings, "设置")
+            DrawerMenuRow(Icons.Outlined.Settings, "设置", onClick = onOpenSettings)
 
             Spacer(Modifier.height(14.dp))
             HorizontalDivider(color = XiaonianColors.Divider)
@@ -179,12 +180,16 @@ private fun DrawerAction(label: String, onClick: () -> Unit) {
 }
 
 @Composable
-private fun DrawerMenuRow(icon: ImageVector, label: String) {
+private fun DrawerMenuRow(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit = {},
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .clickable {}
+            .clickable(onClick = onClick)
             .padding(vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {

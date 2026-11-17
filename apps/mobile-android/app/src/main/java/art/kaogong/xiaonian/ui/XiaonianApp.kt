@@ -21,11 +21,13 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import art.kaogong.xiaonian.data.Settings
 import art.kaogong.xiaonian.ui.chat.AttachSheet
 import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
 import art.kaogong.xiaonian.ui.model.ChatMode
+import art.kaogong.xiaonian.ui.settings.ServerSettingsDialog
 import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
 import art.kaogong.xiaonian.ui.voice.VoicePlayer
 import kotlinx.coroutines.launch
@@ -44,6 +46,8 @@ fun XiaonianApp(
     var input by remember { mutableStateOf("") }
     var voiceMode by remember { mutableStateOf(false) }
     var showAttach by remember { mutableStateOf(false) }
+    var showSettings by remember { mutableStateOf(false) }
+    var serverUrl by remember { mutableStateOf(Settings.baseUrl(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
 
@@ -241,6 +245,10 @@ fun XiaonianApp(
                     viewModel.exportHistory()
                     scope.launch { drawerState.close() }
                 },
+                onOpenSettings = {
+                    showSettings = true
+                    scope.launch { drawerState.close() }
+                },
                 onImport = {
                     importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
@@ -272,6 +280,19 @@ fun XiaonianApp(
             onContinue = { viewModel.continueGeneration() },
             onSpeak = { text -> viewModel.speakMessage(text) },
             onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
+        )
+    }
+
+    if (showSettings) {
+        ServerSettingsDialog(
+            current = serverUrl,
+            onDismiss = { showSettings = false },
+            onSave = { value ->
+                Settings.setBaseUrl(context, value)
+                serverUrl = Settings.baseUrl(context)
+                viewModel.refreshConversations()
+            },
+            onTest = { value, callback -> viewModel.testConnection(value, callback) },
         )
     }
 

@@ -1,11 +1,13 @@
 package art.kaogong.xiaonian.ui.chat
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import art.kaogong.xiaonian.data.ChatStreamEvent
 import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.data.FileRef
 import art.kaogong.xiaonian.data.MessageDto
+import art.kaogong.xiaonian.data.Settings
 import art.kaogong.xiaonian.data.VoiceRecorder
 import art.kaogong.xiaonian.data.XiaonianApi
 import java.util.UUID
@@ -70,9 +72,10 @@ data class ChatUiState(
     val error: String? = null,
 )
 
-class ChatViewModel(
-    private val api: XiaonianApi = XiaonianApi(),
-) : ViewModel() {
+class ChatViewModel(app: Application) : AndroidViewModel(app) {
+
+    /** 每次请求现取地址，用户在设置里改完立即生效 */
+    private val api = XiaonianApi { Settings.baseUrl(app) }
 
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
@@ -129,6 +132,13 @@ class ChatViewModel(
 
     fun reportError(message: String) {
         _state.update { it.copy(error = message) }
+    }
+
+    /** 设置页用：探一下**输入框里**的地址能不能通（还没保存的那个） */
+    fun testConnection(baseUrl: String, onResult: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            onResult(XiaonianApi { baseUrl }.healthz())
+        }
     }
 
     /** 读链接：正文走 transcript 通道填进输入框，用户可以先看一眼再发 */
