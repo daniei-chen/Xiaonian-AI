@@ -18,11 +18,13 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 
-/** 一条搜索命中 */
+/** 一条搜索命中；authority/score 用来决定抓哪几篇正文 */
 data class SearchHit(
     val title: String,
     val url: String,
     val snippet: String,
+    val authority: Int = 0,
+    val score: Double = 0.0,
 )
 
 /**
@@ -78,6 +80,8 @@ class DirectToolsApi(private val keyProvider: () -> String) {
                     title = item["title"]?.jsonPrimitive?.contentOrNull ?: url,
                     url = url,
                     snippet = summary.take(400),
+                    authority = item["authority"]?.jsonPrimitive?.contentOrNull?.toIntOrNull() ?: 0,
+                    score = item["rerank_score"]?.jsonPrimitive?.contentOrNull?.toDoubleOrNull() ?: 0.0,
                 )
             }
         }
@@ -104,27 +108,86 @@ class DirectToolsApi(private val keyProvider: () -> String) {
 
     // ---------------------------------------------------------------- OCR
 
-    suspend fun ocr(bytes: ByteArray, filename: String, mime: String): String =
-        withContext(Dispatchers.IO) {
-            val form = MultipartBody.Builder()
-                .setType(MultipartBody.FORM)
-                .addFormDataPart("purpose", "text_recognition")
-                .addFormDataPart("file", filename, bytes.toRequestBody(mime.toMediaType()))
-                .build()
+    suspend fun ocr(
+        bytes: ByteArray,
+        filename: String,
+        mime: String,
+        /** true 时用版面识别并还原阅读顺序（表格/多栏文档） */
+        layout: Boolean = false,
+    ): String = withContext(Dispatchers.IO) {
+        val form = MultipartBody.Builder()
+            .setType(MultipartBody.FORM)
+            .addFormDataPart(
+                "purpose",
+                if (layout) "rich_layout_recognition" else "text_recognition",
+            )
+            .addFormDataPart("file", filename, bytes.toRequestBody(mime.toMediaType()))
+            .build()
 
-            val request = authBuilder("/v1/tools/ocr").post(form).build()
+        val request = authBuilder("/v1/tools/ocr").post(form).build()
 
-            client.newCall(request).execute().use { response ->
-                if (!response.isSuccessful) throw IOException("识别失败 HTTP ${response.code}")
-                val text = response.body?.string().orEmpty()
-                val root = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
-                    ?: throw IOException("识别返回无法解析")
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("识别失败 HTTP ${response.code}")
+            val text = response.body?.string().orEmpty()
+            val root = runCatching { json.parseToJsonElement(text).jsonObject }.getOrNull()
+                ?: throw IOException("识别返回无法解析")
 
-                val pages = root["pages"] as? JsonArray ?: return@use ""
-                pages.mapNotNull { (it as? JsonObject)?.get("text")?.jsonPrimitive?.contentOrNull }
-                    .joinToString("\n\n")
-            }
+            val pages = root["pages"] as? JsonArray ?: return@use ""
+            val raw = pages.mapNotNull { (it as? JsonObject)?.get("text")?.jsonPrimitive?.contentOrNull }
+            if (layout) Layout.reorderByLayout(raw.joinToString("\n")) else raw.joinToString("\n\n")
         }
+    }
+
+    /** 版面解析单独放一个嵌套对象，避免和切句的 companion 撞名 */
+    private object Layout {
+        /** `<|ref|>文字<|/ref|><|box|>[[x1,y1,x2,y2]]<|/box|> 内容` */
+        private val LAYOUT_LINE = Regex(
+            """<\|ref\|>[^<]*<\|/ref\|><\|box\|>\[\[(\d+),(\d+),(\d+),(\d+)\]\]<\|/box\|>\s*(.+?)(?=<\|ref\||$)""",
+            RegexOption.DOT_MATCHES_ALL,
+        )
+
+        /**
+         * 版面识别返回的是带坐标的碎片，顺序不一定等于阅读顺序。
+         * 按 y 坐标聚成行、行内按 x 排序，就还原成正常阅读顺序——
+         * 多栏和表格至少不会再把两栏串在一起。
+         */
+        fun reorderByLayout(raw: String): String {
+            val items = LAYOUT_LINE.findAll(raw).mapNotNull { m ->
+                val x1 = m.groupValues[1].toIntOrNull() ?: return@mapNotNull null
+                val y1 = m.groupValues[2].toIntOrNull() ?: return@mapNotNull null
+                val body = m.groupValues[5].trim()
+                if (body.isEmpty()) return@mapNotNull null
+                body to (x1 to y1)
+            }.toList()
+
+            if (items.isEmpty()) {
+                // 没有坐标标记说明这页没解析出版面，退回原文
+                return raw.replace(Regex("<\\|[^|]+\\|>"), "").trim()
+            }
+
+            // 同一行的判定：y 差值小于行高估算（这里用 18 像素的容差）
+            val tolerance = 18
+            val sorted = items.sortedBy { it.second.second }
+            val lines = mutableListOf<MutableList<Pair<String, Int>>>()
+
+            var currentY = sorted.first().second.second
+            var currentLine = mutableListOf<Pair<String, Int>>()
+
+            for ((body, pos) in sorted) {
+                if (pos.second - currentY > tolerance) {
+                    lines.add(currentLine)
+                    currentLine = mutableListOf<Pair<String, Int>>()
+                    currentY = pos.second
+                }
+                currentLine.add(body to pos.first)
+            }
+            if (currentLine.isNotEmpty()) lines.add(currentLine)
+
+            return lines.joinToString("\n") { line ->
+                line.sortedBy { it.second }.joinToString(" ") { it.first }
+            }.trim()
+        }
+    }
 
     // ---------------------------------------------------------------- 语音识别
 
@@ -164,6 +227,61 @@ class DirectToolsApi(private val keyProvider: () -> String) {
                 response.body?.bytes() ?: ByteArray(0)
             }
         }
+
+    /**
+     * 按句合成：把长文本切段，每段合成完立刻交给调用方播放。
+     *
+     * 整段合成的体验很差——一个 800 字的回答要等十几秒才有声音。切句之后
+     * 第一句出来就能播，后面的在旁边合成。代价是多几次请求，但 TTS 便宜。
+     */
+    suspend fun synthesizeBySentence(
+        text: String,
+        voice: String = "stella",
+        onClip: suspend (text: String, audio: ByteArray) -> Unit,
+    ) = withContext(Dispatchers.IO) {
+        for (sentence in splitForSpeech(text)) {
+            val audio = runCatching { synthesize(sentence, voice) }.getOrNull()
+            if (audio != null && audio.isNotEmpty()) onClip(sentence, audio)
+        }
+    }
+
+    companion object {
+        /**
+         * 切句规则：句末标点（中英）后断，长度上限 90 字，超长再按逗号切。
+         * 太短的碎片（<4 字）并到前一句，否则语气会很碎。
+         */
+        fun splitForSpeech(text: String): List<String> {
+            val normalized = text.replace(Regex("[\\r\\n]+"), " ").trim()
+            if (normalized.isEmpty()) return emptyList()
+
+            val rough = Regex("(?<=[。！？!?；;])|(?<=[.:])\\s+")
+                .split(normalized)
+                .map { it.trim() }
+                .filter { it.isNotEmpty() }
+
+            val merged = mutableListOf<String>()
+            for (piece in rough) {
+                val last = merged.lastOrNull()
+                if (last != null && (last.length < 4 || last.length + piece.length <= 90)) {
+                    // 短碎片并回上一句；或合并后仍不超长
+                    if (last.length + piece.length <= 90) {
+                        merged[merged.lastIndex] = last + piece
+                        continue
+                    }
+                }
+                if (piece.length <= 90) {
+                    merged.add(piece)
+                } else {
+                    // 太长就按逗号再切
+                    Regex("(?<=[，,、])").split(piece)
+                        .map { it.trim() }
+                        .filter { it.isNotEmpty() }
+                        .forEach { merged.add(it) }
+                }
+            }
+            return merged
+        }
+    }
 
     // ---------------------------------------------------------------- 文件上传
 

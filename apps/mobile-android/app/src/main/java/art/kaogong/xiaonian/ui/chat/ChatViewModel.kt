@@ -313,8 +313,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val bytes = runCatching { repo.tool.synthesize(trimmed.take(600)) }.getOrNull()
-            if (bytes != null && bytes.isNotEmpty()) _voiceAudio.emit(bytes)
+            // 按句合成、逐句推送：第一句出来就能播，其余在旁边合成
+            repo.tool.synthesizeBySentence(trimmed.take(2000)) { _, audio ->
+                _voiceAudio.emit(audio)
+            }
         }
     }
 

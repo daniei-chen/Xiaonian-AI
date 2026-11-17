@@ -199,7 +199,7 @@ fun XiaonianApp(
         LaunchedEffect(Unit) {
             viewModel.voiceAudio.collect { bytes ->
                 speaking = bytes.isNotEmpty()
-                player.play(bytes)
+                player.enqueue(bytes)
             }
         }
 

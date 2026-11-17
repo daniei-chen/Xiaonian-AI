@@ -104,10 +104,27 @@ class ChatRepository(
             val deep = deepSearch
             val outcome = runCatching {
                 withContext(Dispatchers.IO) {
-                    val hits = tool.search(text, if (deep) 8 else 6)
+                    val raw = tool.search(text, if (deep) 8 else 6)
+
+                    // 去重：同一 URL 只留一条；标题完全相同的镜像站也合并
+                    val seenUrls = HashSet<String>()
+                    val seenTitles = HashSet<String>()
+                    val hits = raw.filter { hit ->
+                        val key = hit.url.substringBefore('#').trimEnd('/')
+                        val title = hit.title.trim()
+                        seenUrls.add(key) && (title.isEmpty() || seenTitles.add(title))
+                    }
+
+                    // 抓正文的条目按质量排，而不是按搜索返回顺序：
+                    // authority 优先（官方文档 > 博客 > 论坛），其次 rerank 分
+                    val toFetch = hits
+                        .sortedWith(compareByDescending<art.kaogong.xiaonian.data.SearchHit> { it.authority }
+                            .thenByDescending { it.score })
+                        .take(3)
+
                     val lines = StringBuilder()
                     hits.forEachIndexed { index, hit ->
-                        val body = if (deep && index < 3) {
+                        val body = if (deep && hit in toFetch) {
                             runCatching { tool.fetchPage(hit.url).second.take(3000) }
                                 .getOrDefault(hit.snippet)
                         } else {
