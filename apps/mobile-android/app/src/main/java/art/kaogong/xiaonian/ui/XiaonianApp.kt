@@ -79,6 +79,37 @@ fun XiaonianApp(
         }
     }
 
+    /** 拍照：走系统相机写到 cache，回调里直接读文件 */
+    var cameraFile by remember { mutableStateOf<java.io.File?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.TakePicture(),
+    ) { success ->
+        val file = cameraFile
+        cameraFile = null
+        if (success && file != null && file.exists() && file.length() > 0) {
+            runCatching {
+                viewModel.uploadAttachment(file.readBytes(), file.name, "image/jpeg")
+            }
+        }
+    }
+
+    val launchCamera: () -> Unit = {
+        runCatching {
+            val dir = java.io.File(context.cacheDir, "camera").apply { mkdirs() }
+            val file = java.io.File.createTempFile("photo-", ".jpg", dir)
+            val uri = androidx.core.content.FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+            cameraFile = file
+            cameraLauncher.launch(uri)
+        }.onFailure {
+            viewModel.reportError("无法启动相机：${it.message}")
+        }
+    }
+
     /** 图片转文字：选完直接 OCR，结果填进输入框 */
     val ocrPicker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia(),
@@ -259,6 +290,10 @@ fun XiaonianApp(
                 imagePicker.launch(
                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
                 )
+            },
+            onTakePhoto = {
+                showAttach = false
+                launchCamera()
             },
             onPickFile = {
                 showAttach = false

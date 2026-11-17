@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 拍照的临时文件落在 cache 下，通过 FileProvider 交给系统相机写入 -->
+<paths>
+    <cache-path name="camera" path="camera/" />
+</paths>

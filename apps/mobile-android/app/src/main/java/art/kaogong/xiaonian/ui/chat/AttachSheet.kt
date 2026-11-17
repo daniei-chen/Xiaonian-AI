@@ -58,6 +58,7 @@ fun AttachSheet(
     onToggleThinking: () -> Unit,
     onEffortChange: (String) -> Unit,
     onPickImage: () -> Unit,
+    onTakePhoto: () -> Unit,
     onPickFile: () -> Unit,
     onPickOcr: () -> Unit,
     onReadLink: () -> Unit,
@@ -83,7 +84,7 @@ fun AttachSheet(
         },
     ) {
         Column(modifier = Modifier.padding(bottom = 26.dp)) {
-            SheetItem(Icons.Outlined.PhotoCamera, "拍照", enabled = false)
+            SheetItem(Icons.Outlined.PhotoCamera, "拍照", onClick = onTakePhoto)
             SheetItem(Icons.Outlined.Image, "照片", onClick = onPickImage)
             SheetItem(Icons.Outlined.AttachFile, "文件", onClick = onPickFile)
             SheetItem(Icons.Outlined.TextSnippet, "图片转文字", onClick = onPickOcr)
