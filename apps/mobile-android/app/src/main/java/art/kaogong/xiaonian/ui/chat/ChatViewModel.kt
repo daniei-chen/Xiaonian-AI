@@ -141,6 +141,10 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(error = message) }
     }
 
+    fun dismissError() {
+        _state.update { it.copy(error = null) }
+    }
+
     /** 设置保存后把默认思考/强度应用到当前会话 */
     fun applyDefaults(thinking: Boolean, effort: String) {
         _state.update { it.copy(thinking = thinking, effort = effort) }

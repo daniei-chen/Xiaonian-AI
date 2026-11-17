@@ -35,6 +35,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import art.kaogong.xiaonian.ui.theme.LocalFontScale
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -55,25 +56,36 @@ fun MarkdownText(
 ) {
     val blocks = remember(markdown) { parseBlocks(markdown) }
 
+    // 字号倍率从设置里来；只在非 1.0 时重算样式，避免无谓的对象分配
+    val scale = LocalFontScale.current
+    val body = if (scale == 1f) {
+        baseStyle
+    } else {
+        baseStyle.copy(
+            fontSize = baseStyle.fontSize * scale,
+            lineHeight = baseStyle.lineHeight * scale,
+        )
+    }
+
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         for (block in blocks) {
             when (block) {
                 is MdBlock.Code -> CodeBlock(code = block.code, language = block.language)
                 is MdBlock.Heading -> Text(
                     text = renderInline(block.text, color),
-                    style = baseStyle.copy(
+                    style = body.copy(
                         fontSize = when (block.level) {
                             1 -> 22.sp
                             2 -> 19.sp
                             else -> 17.sp
-                        },
+                        } * scale,
                         fontWeight = FontWeight.Bold,
-                        lineHeight = 26.sp,
+                        lineHeight = 26.sp * scale,
                     ),
                     color = color,
                 )
-                is MdBlock.Bullet -> BulletRow(block, color, baseStyle)
-                is MdBlock.Ordered -> OrderedRow(block, color, baseStyle)
+                is MdBlock.Bullet -> BulletRow(block, color, body)
+                is MdBlock.Ordered -> OrderedRow(block, color, body)
                 is MdBlock.Rule -> HorizontalDivider(
                     color = XiaonianColors.Divider,
                     modifier = Modifier.padding(vertical = 4.dp),
@@ -81,7 +93,7 @@ fun MarkdownText(
                 is MdBlock.Table -> TableBlock(block)
                 is MdBlock.Paragraph -> Text(
                     text = renderInline(block.text, color),
-                    style = baseStyle,
+                    style = body,
                     color = color,
                 )
             }

@@ -269,14 +269,17 @@ fun XiaonianApp(
             )
         },
     ) {
-        ChatScreen(
-            state = state,
-            activeProvider = provider,
-            onSelectProvider = { picked ->
-                Settings.setProvider(context, picked)
-                provider = picked
-                provider = picked
-            },
+        // 字号倍率只作用于回答正文，通过 CompositionLocal 下去
+        androidx.compose.runtime.CompositionLocalProvider(
+            art.kaogong.xiaonian.ui.theme.LocalFontScale provides fontScale,
+        ) {
+            ChatScreen(
+                state = state,
+                activeProvider = provider,
+                onSelectProvider = { picked ->
+                    Settings.setProvider(context, picked)
+                    provider = picked
+                },
             onOpenSettings = { showSettings = true },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onNewChat = {
@@ -299,7 +302,9 @@ fun XiaonianApp(
             onContinue = { viewModel.continueGeneration() },
             onSpeak = { text -> viewModel.speakMessage(text) },
             onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
-        )
+            onDismissError = { viewModel.dismissError() },
+            )
+        }
     }
 
     if (showSettings) {

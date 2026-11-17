@@ -156,6 +156,17 @@ fun SettingsDialog(
                     }
                 }
 
+                Spacer(Modifier.height(12.dp))
+                Text("回答字号", style = MaterialTheme.typography.bodyMedium)
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf(0.9f to "小", 1f to "标准", 1.15f to "大", 1.3f to "特大").forEach { (scale, label) ->
+                        Chip(label, kotlin.math.abs(values.fontScale - scale) < 0.01f) {
+                            values = values.copy(fontScale = scale)
+                        }
+                    }
+                }
+
                 Spacer(Modifier.height(16.dp))
                 HorizontalDivider(color = XiaonianColors.Divider)
                 Spacer(Modifier.height(12.dp))

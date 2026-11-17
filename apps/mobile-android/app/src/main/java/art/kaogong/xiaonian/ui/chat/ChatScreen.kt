@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -54,6 +55,7 @@ fun ChatScreen(
     onContinue: () -> Unit,
     onSpeak: (String) -> Unit,
     onRemoveAttachment: (String) -> Unit = {},
+    onDismissError: () -> Unit = {},
 ) {
     Scaffold(
         containerColor = XiaonianColors.Canvas,
@@ -104,17 +106,32 @@ fun ChatScreen(
                 // 新会话页：上方留白，最近会话贴着输入框往上排（与截图一致）
                 Spacer(Modifier.weight(1f))
 
+                if (state.conversations.isEmpty()) {
+                    // 一次都没聊过：给个起点，而不是一片空白
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = "还没有对话",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = XiaonianColors.Ink,
+                        )
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            text = "直接问点什么，或用 ＋ 发图片、文件、链接",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = XiaonianColors.InkSecondary,
+                        )
+                    }
+                }
+
                 state.conversations.forEach { item ->
                     RecentConversationRow(item = item, onClick = onConversationClick)
                 }
 
                 state.error?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = XiaonianColors.InkSecondary,
-                        modifier = Modifier.padding(top = 12.dp),
-                    )
+                    ErrorLine(message, onDismissError)
                 }
             } else {
                 MessageList(
@@ -128,15 +145,41 @@ fun ChatScreen(
 
                 // 有消息时也要能看到错误（录音太短、识别失败等）
                 state.error?.let { message ->
-                    Text(
-                        text = message,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color(0xFFD33A3A),
-                        modifier = Modifier.padding(bottom = 6.dp),
-                    )
+                    ErrorLine(message, onDismissError, color = Color(0xFFD33A3A))
                 }
             }
         }
+    }
+}
+
+/** 一行错误提示，带关闭：否则「已清除全部对话」这类提示会一直挂着 */
+@Composable
+private fun ErrorLine(
+    message: String,
+    onDismiss: () -> Unit,
+    color: Color = XiaonianColors.InkSecondary,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = message,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            text = "知道了",
+            style = MaterialTheme.typography.labelSmall,
+            color = XiaonianColors.Accent,
+            modifier = Modifier
+                .clip(RoundedCornerShape(8.dp))
+                .clickable(onClick = onDismiss)
+                .padding(horizontal = 8.dp, vertical = 4.dp),
+        )
     }
 }
 
