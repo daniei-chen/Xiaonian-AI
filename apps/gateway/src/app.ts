@@ -1,14 +1,18 @@
 import cors from '@fastify/cors'
-import { loadCapabilitiesConfig, resolveChain } from '@xiaonian/adapters'
+import type { PGlite } from '@electric-sql/pglite'
+import { resolveChain } from '@xiaonian/adapters'
 import { apiError, type ErrorCode } from '@xiaonian/protocol'
 import Fastify, { type FastifyError } from 'fastify'
-import { resolve } from 'node:path'
 import type { Logger } from 'pino'
+import type { CapabilitiesRuntime } from './capabilities.js'
 import type { Env } from './env.js'
+import { registerConversationRoutes } from './routes/conversations.js'
 
 export interface AppDeps {
   env: Env
   logger: Logger
+  db: PGlite
+  caps: CapabilitiesRuntime
 }
 
 const statusToCode = (status: number): ErrorCode => {
@@ -19,6 +23,8 @@ const statusToCode = (status: number): ErrorCode => {
       return 'unauthorized'
     case 403:
       return 'forbidden'
+    case 404:
+      return 'not_found'
     case 409:
       return 'conflict'
     case 429:
@@ -28,10 +34,11 @@ const statusToCode = (status: number): ErrorCode => {
   }
 }
 
-export const buildApp = async ({ env, logger }: AppDeps) => {
+export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   const app = Fastify({
     loggerInstance: logger,
     trustProxy: true,
+    bodyLimit: 16 * 1024 * 1024,
   })
 
   await app.register(cors, { origin: true })
@@ -41,6 +48,7 @@ export const buildApp = async ({ env, logger }: AppDeps) => {
     service: 'xiaonian-gateway',
     version: '0.0.0',
     env: env.nodeEnv,
+    chatProvider: caps.defaultChatProvider,
     now: new Date().toISOString(),
   }))
 
@@ -48,15 +56,17 @@ export const buildApp = async ({ env, logger }: AppDeps) => {
    * 能力探测：客户端据此决定哪些按钮可用。
    * 只暴露 provider 名与调用链，不暴露密钥与 baseURL。
    */
-  app.get('/api/v1/meta/capabilities', async () => {
-    const configPath = resolve(env.rootDir, 'config/capabilities.yaml')
-    const config = await loadCapabilitiesConfig(configPath)
-    return {
-      kinds: Object.fromEntries(
-        Object.keys(config).map((kind) => [kind, resolveChain(config, kind)]),
-      ),
-    }
-  })
+  app.get('/api/v1/meta/capabilities', async () => ({
+    chat: {
+      providers: caps.chatProviders,
+      default: caps.defaultChatProvider,
+    },
+    kinds: Object.fromEntries(
+      Object.keys(caps.config).map((kind) => [kind, resolveChain(caps.config, kind)]),
+    ),
+  }))
+
+  registerConversationRoutes(app, { db, caps })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

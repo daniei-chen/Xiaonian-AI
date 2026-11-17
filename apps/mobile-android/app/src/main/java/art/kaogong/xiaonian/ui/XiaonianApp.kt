@@ -10,35 +10,38 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import art.kaogong.xiaonian.ui.chat.ChatScreen
+import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
 import art.kaogong.xiaonian.ui.model.ChatMode
-import art.kaogong.xiaonian.ui.model.ConversationSummary
-import art.kaogong.xiaonian.ui.model.sampleConversations
 import kotlinx.coroutines.launch
 
 @Composable
-fun XiaonianApp() {
+fun XiaonianApp(
+    viewModel: ChatViewModel = viewModel(),
+) {
+    val state by viewModel.state.collectAsStateWithLifecycle()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
 
     var mode by remember { mutableStateOf(ChatMode.Chat) }
     var input by remember { mutableStateOf("") }
-    var active by remember { mutableStateOf<ConversationSummary?>(null) }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         scrimColor = Color(0x33000000),
         drawerContent = {
             XiaonianDrawer(
-                conversations = sampleConversations,
-                activeId = active?.id,
+                conversations = state.conversations,
+                activeId = state.activeConversationId,
                 onSelect = { selected ->
-                    active = selected
+                    viewModel.openConversation(selected.id)
                     scope.launch { drawerState.close() }
                 },
                 onNewChat = {
-                    active = null
+                    viewModel.newConversation()
                     input = ""
                     scope.launch { drawerState.close() }
                 },
@@ -46,20 +49,25 @@ fun XiaonianApp() {
         },
     ) {
         ChatScreen(
+            state = state,
             mode = mode,
             onModeChange = { mode = it },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onNewChat = {
-                active = null
+                viewModel.newConversation()
                 input = ""
             },
-            conversations = sampleConversations,
-            onConversationClick = { active = it },
+            onConversationClick = { id -> viewModel.openConversation(id) },
             input = input,
             onInputChange = { input = it },
-            onSend = { input = "" },
+            onSend = {
+                viewModel.send(input)
+                input = ""
+            },
+            onStop = { viewModel.stop() },
             onVoice = {},
             onAttach = {},
+            onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
         )
     }
 }

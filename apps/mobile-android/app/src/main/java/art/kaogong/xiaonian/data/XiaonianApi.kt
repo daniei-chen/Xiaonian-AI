@@ -1,0 +1,200 @@
+package art.kaogong.xiaonian.data
+
+import java.io.IOException
+import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.contentOrNull
+import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
+import okhttp3.Response
+import okhttp3.sse.EventSource
+import okhttp3.sse.EventSourceListener
+import okhttp3.sse.EventSources
+
+// ---------------------------------------------------------------- DTO
+
+@Serializable
+data class ConversationDto(
+    val id: String,
+    val title: String? = null,
+    val lastMessageAt: String? = null,
+    val createdAt: String? = null,
+)
+
+@Serializable
+data class BlockDto(
+    val type: String,
+    val text: String? = null,
+)
+
+@Serializable
+data class MessageDto(
+    val id: String,
+    val role: String,
+    val blocks: List<BlockDto> = emptyList(),
+    val status: String = "completed",
+    val seq: Long = 0,
+)
+
+@Serializable
+data class ConversationDetailDto(
+    val conversation: ConversationDto,
+    val messages: List<MessageDto> = emptyList(),
+)
+
+@Serializable
+private data class ConversationListDto(val items: List<ConversationDto> = emptyList())
+
+// ---------------------------------------------------------------- 流式事件
+
+sealed interface ChatStreamEvent {
+    data class Accepted(val assistantMessageId: String) : ChatStreamEvent
+    data class Started(val provider: String, val model: String) : ChatStreamEvent
+    data class TextDelta(val index: Int, val text: String) : ChatStreamEvent
+    data class ReasoningDelta(val index: Int, val text: String) : ChatStreamEvent
+    data class Completed(val messageId: String, val canContinue: Boolean) : ChatStreamEvent
+    data class Failed(val code: String, val message: String) : ChatStreamEvent
+}
+
+// ---------------------------------------------------------------- API
+
+class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(0, TimeUnit.MILLISECONDS) // SSE 不能有读超时
+        .build()
+
+    private val jsonMedia = "application/json; charset=utf-8".toMediaType()
+
+    private fun url(path: String) = baseUrl.trimEnd('/') + path
+
+    suspend fun listConversations(): List<ConversationDto> = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url("/api/v1/conversations")).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("list failed: ${response.code}")
+            val body = response.body?.string().orEmpty()
+            json.decodeFromString(ConversationListDto.serializer(), body).items
+        }
+    }
+
+    suspend fun createConversation(): ConversationDto = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(url("/api/v1/conversations"))
+            .post("{}".toRequestBody(jsonMedia))
+            .build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("create failed: ${response.code}")
+            val body = response.body?.string().orEmpty()
+            json.decodeFromString(ConversationDto.serializer(), body)
+        }
+    }
+
+    suspend fun loadConversation(id: String): ConversationDetailDto = withContext(Dispatchers.IO) {
+        val request = Request.Builder().url(url("/api/v1/conversations/$id")).get().build()
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("load failed: ${response.code}")
+            val body = response.body?.string().orEmpty()
+            json.decodeFromString(ConversationDetailDto.serializer(), body)
+        }
+    }
+
+    suspend fun stop(messageId: String): Unit = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(url("/api/v1/messages/$messageId/stop"))
+            .post("{}".toRequestBody(jsonMedia))
+            .build()
+        runCatching { client.newCall(request).execute().close() }
+    }
+
+    fun streamMessage(
+        conversationId: String,
+        text: String,
+        thinking: Boolean,
+    ): Flow<ChatStreamEvent> = callbackFlow {
+        val payload = buildJsonObject {
+            put("text", text)
+            put("thinking", thinking)
+            put("maxTokens", 2048)
+        }.toString()
+
+        val request = Request.Builder()
+            .url(url("/api/v1/conversations/$conversationId/messages"))
+            .post(payload.toRequestBody(jsonMedia))
+            .header("Accept", "text/event-stream")
+            .build()
+
+        val listener = object : EventSourceListener() {
+            override fun onEvent(
+                eventSource: EventSource,
+                id: String?,
+                type: String?,
+                data: String,
+            ) {
+                if (type == null) return
+                val parsed = parseEvent(type, data) ?: return
+                trySend(parsed)
+                if (parsed is ChatStreamEvent.Completed || parsed is ChatStreamEvent.Failed) {
+                    close()
+                }
+            }
+
+            override fun onClosed(eventSource: EventSource) {
+                close()
+            }
+
+            override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
+                close(t ?: IOException("stream failed: ${response?.code}"))
+            }
+        }
+
+        val source = EventSources.createFactory(client).newEventSource(request, listener)
+        awaitClose { source.cancel() }
+    }
+
+    private fun parseEvent(type: String, data: String): ChatStreamEvent? {
+        val obj: JsonObject = runCatching { json.parseToJsonElement(data).jsonObject }.getOrNull() ?: return null
+        return when (type) {
+            "message.accepted" -> ChatStreamEvent.Accepted(
+                obj["assistantMessageId"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+            "message.started" -> ChatStreamEvent.Started(
+                obj["provider"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                obj["model"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+            "text.delta" -> ChatStreamEvent.TextDelta(
+                obj["index"]?.jsonPrimitive?.intOrNull ?: 0,
+                obj["text"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+            "reasoning.delta" -> ChatStreamEvent.ReasoningDelta(
+                obj["index"]?.jsonPrimitive?.intOrNull ?: 0,
+                obj["text"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+            "message.completed" -> ChatStreamEvent.Completed(
+                obj["messageId"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                obj["canContinue"]?.jsonPrimitive?.contentOrNull == "true",
+            )
+            "message.failed" -> ChatStreamEvent.Failed(
+                obj["code"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+                obj["message"]?.jsonPrimitive?.contentOrNull.orEmpty(),
+            )
+            else -> null
+        }
+    }
+}

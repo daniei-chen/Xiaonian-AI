@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowUpward
 import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -39,6 +40,8 @@ fun Composer(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
+    onStop: () -> Unit,
+    streaming: Boolean,
     onVoice: () -> Unit,
     onAttach: () -> Unit,
     modifier: Modifier = Modifier,
@@ -96,12 +99,26 @@ fun Composer(
                 .size(48.dp)
                 .clip(CircleShape)
                 .background(XiaonianColors.Accent)
-                .clickable { if (hasText) onSend() else onVoice() },
+                .clickable {
+                    when {
+                        streaming -> onStop()
+                        hasText -> onSend()
+                        else -> onVoice()
+                    }
+                },
             contentAlignment = Alignment.Center,
         ) {
             Icon(
-                imageVector = if (hasText) Icons.Outlined.ArrowUpward else Icons.Outlined.Mic,
-                contentDescription = if (hasText) "发送" else "语音",
+                imageVector = when {
+                    streaming -> Icons.Outlined.Stop
+                    hasText -> Icons.Outlined.ArrowUpward
+                    else -> Icons.Outlined.Mic
+                },
+                contentDescription = when {
+                    streaming -> "停止生成"
+                    hasText -> "发送"
+                    else -> "语音"
+                },
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),
             )

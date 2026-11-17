@@ -34,8 +34,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.ui.components.CircleIconButton
-import art.kaogong.xiaonian.ui.model.ConversationSummary
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -44,9 +44,9 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
  */
 @Composable
 fun XiaonianDrawer(
-    conversations: List<ConversationSummary>,
+    conversations: List<ConversationDto>,
     activeId: String?,
-    onSelect: (ConversationSummary) -> Unit,
+    onSelect: (ConversationDto) -> Unit,
     onNewChat: () -> Unit,
 ) {
     ModalDrawerSheet(
@@ -181,12 +181,12 @@ private fun DrawerMenuRow(icon: ImageVector, label: String) {
 
 @Composable
 private fun DrawerConversationRow(
-    item: ConversationSummary,
+    item: ConversationDto,
     selected: Boolean,
     onClick: () -> Unit,
 ) {
     Text(
-        text = item.title,
+        text = item.title ?: "新对话",
         style = MaterialTheme.typography.bodyLarge,
         color = if (selected) XiaonianColors.Ink else XiaonianColors.InkSecondary,
         maxLines = 1,

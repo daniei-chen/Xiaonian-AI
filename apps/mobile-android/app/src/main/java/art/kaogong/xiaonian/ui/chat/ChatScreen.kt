@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -30,23 +29,25 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.ui.model.ChatMode
-import art.kaogong.xiaonian.ui.model.ConversationSummary
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 @Composable
 fun ChatScreen(
+    state: ChatUiState,
     mode: ChatMode,
     onModeChange: (ChatMode) -> Unit,
     onOpenDrawer: () -> Unit,
     onNewChat: () -> Unit,
-    conversations: List<ConversationSummary>,
-    onConversationClick: (ConversationSummary) -> Unit,
+    onConversationClick: (String) -> Unit,
     input: String,
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
+    onStop: () -> Unit,
     onVoice: () -> Unit,
     onAttach: () -> Unit,
+    onToggleReasoning: (String) -> Unit,
 ) {
     Scaffold(
         containerColor = XiaonianColors.Canvas,
@@ -66,6 +67,8 @@ fun ChatScreen(
                 value = input,
                 onValueChange = onInputChange,
                 onSend = onSend,
+                onStop = onStop,
+                streaming = state.streaming,
                 onVoice = onVoice,
                 onAttach = onAttach,
                 modifier = Modifier
@@ -80,11 +83,28 @@ fun ChatScreen(
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
         ) {
-            // 新会话页：上方留白，最近会话贴着输入框往上排（与截图一致）
-            Spacer(Modifier.weight(1f))
+            if (state.messages.isEmpty()) {
+                // 新会话页：上方留白，最近会话贴着输入框往上排（与截图一致）
+                Spacer(Modifier.weight(1f))
 
-            conversations.forEach { item ->
-                RecentConversationRow(item = item, onClick = onConversationClick)
+                state.conversations.forEach { item ->
+                    RecentConversationRow(item = item, onClick = onConversationClick)
+                }
+
+                state.error?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = XiaonianColors.InkSecondary,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                }
+            } else {
+                MessageList(
+                    messages = state.messages,
+                    onToggleReasoning = onToggleReasoning,
+                    modifier = Modifier.weight(1f),
+                )
             }
         }
     }
@@ -92,14 +112,14 @@ fun ChatScreen(
 
 @Composable
 private fun RecentConversationRow(
-    item: ConversationSummary,
-    onClick: (ConversationSummary) -> Unit,
+    item: ConversationDto,
+    onClick: (String) -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .clickable { onClick(item) }
+            .clickable { onClick(item.id) }
             .padding(vertical = 13.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -121,13 +141,11 @@ private fun RecentConversationRow(
         Spacer(Modifier.width(13.dp))
 
         Text(
-            text = item.title,
+            text = item.title ?: "新对话",
             style = MaterialTheme.typography.bodyLarge,
             color = XiaonianColors.Ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )
     }
-
-    Spacer(Modifier.height(2.dp))
 }
