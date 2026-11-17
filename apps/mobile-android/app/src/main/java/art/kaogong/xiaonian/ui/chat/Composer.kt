@@ -2,20 +2,28 @@ package art.kaogong.xiaonian.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.GraphicEq
+import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Icon
@@ -53,15 +61,29 @@ fun Composer(
     modifier: Modifier = Modifier,
     recording: Boolean = false,
     transcribing: Boolean = false,
+    attachments: List<PendingAttachment> = emptyList(),
+    uploading: Boolean = false,
+    onRemoveAttachment: (String) -> Unit = {},
 ) {
     val hasText = value.isNotBlank()
+    /** 只有附件也能发，所以发送态不能只看文字 */
+    val canSend = hasText || attachments.isNotEmpty()
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
-        verticalAlignment = Alignment.Bottom,
-    ) {
+    Column(modifier = modifier.fillMaxWidth()) {
+        if (attachments.isNotEmpty() || uploading) {
+            AttachmentChips(
+                attachments = attachments,
+                uploading = uploading,
+                onRemove = onRemoveAttachment,
+            )
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(start = 12.dp, end = 12.dp, top = 6.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.Bottom,
+        ) {
         Row(
             modifier = Modifier
                 .weight(1f)
@@ -133,7 +155,7 @@ fun Composer(
                 .clickable {
                     when {
                         streaming -> onStop()
-                        hasText -> onSend()
+                        canSend -> onSend()
                         else -> onOpenVoiceMode()
                     }
                 },
@@ -142,16 +164,82 @@ fun Composer(
             Icon(
                 imageVector = when {
                     streaming -> Icons.Outlined.Stop
-                    hasText -> Icons.Outlined.ArrowUpward
+                    canSend -> Icons.Outlined.ArrowUpward
                     else -> Icons.Outlined.GraphicEq
                 },
                 contentDescription = when {
                     streaming -> "停止生成"
-                    hasText -> "发送"
+                    canSend -> "发送"
                     else -> "语音对话"
                 },
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),
+            )
+        }
+        }
+    }
+}
+
+/** 待发送附件：图片/文档 chip，可逐个移除 */
+@Composable
+private fun AttachmentChips(
+    attachments: List<PendingAttachment>,
+    uploading: Boolean,
+    onRemove: (String) -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        attachments.forEach { item ->
+            Row(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(XiaonianColors.SurfaceMuted)
+                    .padding(start = 10.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    imageVector = if (item.isImage) Icons.Outlined.Image else Icons.Outlined.Description,
+                    contentDescription = null,
+                    tint = XiaonianColors.InkSecondary,
+                    modifier = Modifier.size(15.dp),
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = item.name,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = XiaonianColors.Ink,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.widthIn(max = 150.dp),
+                )
+                Box(
+                    modifier = Modifier
+                        .size(26.dp)
+                        .clip(CircleShape)
+                        .clickable { onRemove(item.fileId) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Close,
+                        contentDescription = "移除附件",
+                        tint = XiaonianColors.InkSecondary,
+                        modifier = Modifier.size(14.dp),
+                    )
+                }
+            }
+        }
+
+        if (uploading) {
+            Text(
+                text = "上传中…",
+                style = MaterialTheme.typography.labelSmall,
+                color = XiaonianColors.InkTertiary,
             )
         }
     }

@@ -50,6 +50,7 @@ fun ChatScreen(
     onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
     onToggleReasoning: (String) -> Unit,
+    onRemoveAttachment: (String) -> Unit = {},
 ) {
     Scaffold(
         containerColor = XiaonianColors.Canvas,
@@ -76,6 +77,9 @@ fun ChatScreen(
                 onAttach = onAttach,
                 recording = state.recording,
                 transcribing = state.transcribing,
+                attachments = state.attachments,
+                uploading = state.uploading,
+                onRemoveAttachment = onRemoveAttachment,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),

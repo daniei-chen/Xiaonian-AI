@@ -8,6 +8,7 @@ import type { CapabilitiesRuntime } from './capabilities.js'
 import type { Env } from './env.js'
 import { registerAsrRoutes } from './routes/asr.js'
 import { registerConversationRoutes } from './routes/conversations.js'
+import { registerFileRoutes } from './routes/files.js'
 
 export interface AppDeps {
   env: Env
@@ -44,6 +45,13 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
 
   await app.register(cors, { origin: true })
 
+  // 二进制 body（音频 / 文件上传）统一在这里注册，避免两个路由重复注册同一类型
+  for (const type of ['audio/wav', 'audio/x-wav', 'audio/ogg', 'application/octet-stream']) {
+    app.addContentTypeParser(type, { parseAs: 'buffer' }, (_req, body, done) => {
+      done(null, body)
+    })
+  }
+
   app.get('/healthz', async () => ({
     ok: true,
     service: 'xiaonian-gateway',
@@ -69,6 +77,7 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
 
   registerConversationRoutes(app, { db, caps })
   registerAsrRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
+  registerFileRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

@@ -3,6 +3,7 @@ package art.kaogong.xiaonian.ui
 import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
@@ -52,6 +53,27 @@ fun XiaonianApp(
             viewModel.startRecording()
         } else {
             pendingRecord = false
+        }
+    }
+
+    // 照片 / 文件：选完立刻上传，拿到 file_id 后挂在待发送列表上
+    val imagePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            readUri(context, uri)?.let { (bytes, name, mime) ->
+                viewModel.uploadAttachment(bytes, name, mime)
+            }
+        }
+    }
+
+    val filePicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument(),
+    ) { uri ->
+        if (uri != null) {
+            readUri(context, uri)?.let { (bytes, name, mime) ->
+                viewModel.uploadAttachment(bytes, name, mime)
+            }
         }
     }
 
@@ -129,6 +151,7 @@ fun XiaonianApp(
             onOpenVoiceMode = { voiceMode = true },
             onAttach = { showAttach = true },
             onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
+            onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
         )
     }
 
@@ -138,7 +161,33 @@ fun XiaonianApp(
             thinking = state.thinking,
             onToggleWebSearch = { viewModel.toggleWebSearch() },
             onToggleThinking = { viewModel.toggleThinking() },
+            onPickImage = {
+                showAttach = false
+                imagePicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+            },
+            onPickFile = {
+                showAttach = false
+                filePicker.launch(arrayOf("*/*"))
+            },
             onDismiss = { showAttach = false },
         )
     }
+}
+
+/** 读 content:// URI：字节 + 文件名 + mime。读不到返回 null */
+private fun readUri(context: android.content.Context, uri: android.net.Uri): Triple<ByteArray, String, String>? {
+    return runCatching {
+        val resolver = context.contentResolver
+        val mime = resolver.getType(uri) ?: "application/octet-stream"
+
+        val name = resolver.query(uri, null, null, null, null)?.use { cursor ->
+            val idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+            if (idx >= 0 && cursor.moveToFirst()) cursor.getString(idx) else null
+        } ?: "file"
+
+        val bytes = resolver.openInputStream(uri)?.use { it.readBytes() } ?: return null
+        Triple(bytes, name, mime)
+    }.getOrNull()
 }

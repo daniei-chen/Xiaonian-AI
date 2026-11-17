@@ -10,6 +10,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
@@ -63,6 +64,24 @@ data class MessageDto(
 data class ConversationDetailDto(
     val conversation: ConversationDto,
     val messages: List<MessageDto> = emptyList(),
+)
+
+@Serializable
+data class UploadedFileDto(
+    val fileId: String,
+    val name: String,
+    val mime: String,
+    val size: Long = 0,
+    val purpose: String? = null,
+)
+
+@Serializable
+data class FileRef(
+    val fileId: String,
+    val kind: String,
+    val name: String,
+    val mime: String,
+    val size: Long = 0,
 )
 
 @Serializable
@@ -146,17 +165,47 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
         }
     }
 
+    /** 上传附件：原始字节 + X-Mime / X-Filename，返回服务端 file_id */
+    suspend fun uploadFile(bytes: ByteArray, filename: String, mime: String): UploadedFileDto =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(url("/api/v1/files"))
+                .post(bytes.toRequestBody("application/octet-stream".toMediaType()))
+                .header("X-Mime", mime)
+                .header("X-Filename", java.net.URLEncoder.encode(filename, "UTF-8"))
+                .build()
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) throw IOException("upload failed: ${response.code}")
+                json.decodeFromString(UploadedFileDto.serializer(), body)
+            }
+        }
+
     fun streamMessage(
         conversationId: String,
         text: String,
         thinking: Boolean,
         webSearch: Boolean = false,
+        files: List<FileRef> = emptyList(),
     ): Flow<ChatStreamEvent> = callbackFlow {
         val payload = buildJsonObject {
             put("text", text)
             put("thinking", thinking)
             put("webSearch", webSearch)
             put("maxTokens", 2048)
+            if (files.isNotEmpty()) {
+                put("files", buildJsonArray {
+                    files.forEach { f ->
+                        add(buildJsonObject {
+                            put("fileId", f.fileId)
+                            put("kind", f.kind)
+                            put("name", f.name)
+                            put("mime", f.mime)
+                            put("size", f.size)
+                        })
+                    }
+                })
+            }
         }.toString()
 
         val request = Request.Builder()

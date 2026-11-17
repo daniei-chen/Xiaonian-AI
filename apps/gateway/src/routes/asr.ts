@@ -23,13 +23,6 @@ interface AsrResponse {
  * 一次返回全文，没有流式 partial —— 所以这里也没有 partial。
  */
 export const registerAsrRoutes = (app: LooseFastify, { baseURL }: AsrRoutesDeps): void => {
-  // 音频走 raw body，不走 JSON
-  for (const type of ['audio/wav', 'audio/x-wav', 'audio/ogg', 'application/octet-stream']) {
-    app.addContentTypeParser(type, { parseAs: 'buffer' }, (_req, body, done) => {
-      done(null, body)
-    })
-  }
-
   app.post('/api/v1/asr', { bodyLimit: 12 * 1024 * 1024 }, async (req, reply) => {
     const traceId = String(req.id)
     const key = apiKey('DEEPSEEK_API_KEY')

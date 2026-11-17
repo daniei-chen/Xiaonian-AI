@@ -35,7 +35,7 @@ const openSse = (raw: ServerResponse): SendEvent => {
 }
 
 /**
- * 回传给上游的历史：只带正文。
+ * 回传给上游的历史：正文、文件引用、图片引用。
  * 思考块不回传（各 provider 语义不一致，且会显著抬高成本）。
  */
 const toChatMessages = (messages: Message[]): ChatMessage[] =>
@@ -43,7 +43,9 @@ const toChatMessages = (messages: Message[]): ChatMessage[] =>
     .filter((m) => m.status === 'completed' || m.status === 'cancelled')
     .map((m) => ({
       role: (m.role === 'user' ? 'user' : 'assistant') as ChatMessage['role'],
-      blocks: m.blocks.filter((b) => b.type === 'text'),
+      blocks: m.blocks.filter(
+        (b) => b.type === 'text' || b.type === 'file' || b.type === 'image',
+      ),
     }))
     .filter((m) => m.blocks.length > 0)
 
@@ -138,6 +140,14 @@ export const registerConversationRoutes = (
       maxTokens?: number
       /** 联网搜索：只有支持服务端工具的通道能接 */
       webSearch?: boolean
+      /** 已上传的文件引用（file_id 来自 /api/v1/files） */
+      files?: Array<{
+        fileId: string
+        kind?: 'image' | 'document'
+        name?: string
+        mime?: string
+        size?: number
+      }>
       /** 显式指定 provider，不传走默认 */
       provider?: string
     }
@@ -149,15 +159,17 @@ export const registerConversationRoutes = (
     }
 
     const text = (req.body?.text ?? '').trim()
-    if (!text) {
-      return reply.code(400).send(apiError('bad_request', 'text is required', traceId))
+    const fileRefs = req.body?.files ?? []
+    // 允许只发附件不写文字
+    if (!text && fileRefs.length === 0) {
+      return reply.code(400).send(apiError('bad_request', 'text or files required', traceId))
     }
 
     const wantSearch = req.body?.webSearch === true
     let providerName = req.body?.provider ?? caps.defaultChatProvider
 
-    // 联网要走服务端工具，只有 anthropic 通道支持；自动挑一个能接的
-    if (wantSearch) {
+    // 联网与文件都依赖服务端工具能力，只有 anthropic 通道支持
+    if (wantSearch || fileRefs.length > 0) {
       const capable = caps.chatProviders.find((p) =>
         caps.registry.chat(p).caps().features.includes('server-tools'),
       )
@@ -173,11 +185,25 @@ export const registerConversationRoutes = (
     const chat = caps.registry.chat(providerName)
     const configuredModel = caps.config.chat?.providers[providerName]?.model ?? null
 
+    const userBlocks: ContentBlock[] = fileRefs.map((f) =>
+      f.kind === 'image'
+        ? { type: 'image' as const, fileId: f.fileId, provider: 'deepseek' }
+        : {
+            type: 'file' as const,
+            fileId: f.fileId,
+            provider: 'deepseek',
+            name: f.name ?? 'file',
+            mime: f.mime ?? 'application/octet-stream',
+            size: f.size ?? 0,
+          },
+    )
+    if (text) userBlocks.push({ type: 'text', text })
+
     const userMessage = await repo.appendMessage(db, {
       id: newId(),
       conversationId: conversation.id,
       role: 'user',
-      blocks: [{ type: 'text', text }],
+      blocks: userBlocks,
       status: 'completed',
     })
 
@@ -193,7 +219,7 @@ export const registerConversationRoutes = (
     })
 
     // 首条消息顺手当标题（不调模型，省一次请求）
-    if (!conversation.title) {
+    if (!conversation.title && text) {
       await repo.setTitleIfEmpty(db, conversation.id, text.slice(0, 24))
     }
 

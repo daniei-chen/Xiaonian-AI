@@ -80,19 +80,42 @@ const mapStopReason = (reason: string | undefined): ChatOutput['finishReason'] =
   }
 }
 
-/** 把 canonical 块压成 Anthropic 的消息体（只回传正文，思考不回传） */
-const toAnthropicMessages = (input: ChatInput): Array<{ role: string; content: string }> => {
-  const out: Array<{ role: string; content: string }> = []
+/**
+ * 把 canonical 块压成 Anthropic 的消息体。
+ * 正文之外还支持 file_id 引用（图片走 image，文档走 document），
+ * 这是只有 Anthropic 兼容通道才有的能力。
+ */
+const toAnthropicMessages = (input: ChatInput): Array<{ role: string; content: unknown }> => {
+  const out: Array<{ role: string; content: unknown }> = []
   for (const m of input.messages) {
     if (m.role === 'system') continue
-    const text = m.blocks
-      .filter((b): b is Extract<ContentBlock, { type: 'text' }> => b.type === 'text')
-      .map((b) => b.text)
-      .join('')
-    if (text) out.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: text })
+
+    const parts: unknown[] = []
+    let plain = ''
+    let hasRef = false
+
+    for (const b of m.blocks) {
+      if (b.type === 'text') {
+        plain += b.text
+      } else if (b.type === 'image') {
+        parts.push({ type: 'image', source: { type: 'file', file_id: b.fileId } })
+        hasRef = true
+      } else if (b.type === 'file') {
+        parts.push({ type: 'document', source: { type: 'file', file_id: b.fileId } })
+        hasRef = true
+      }
+    }
+
+    if (plain) parts.push({ type: 'text', text: plain })
+    if (parts.length === 0) continue
+
+    out.push({ role: m.role === 'assistant' ? 'assistant' : 'user', content: hasRef ? parts : plain })
   }
   return out
 }
+
+const hasFileRef = (input: ChatInput): boolean =>
+  input.messages.some((m) => m.blocks.some((b) => b.type === 'file' || b.type === 'image'))
 
 export interface AnthropicChatOptions {
   provider: string
@@ -211,6 +234,8 @@ export class AnthropicChatCapability implements ChatCapability {
         // Anthropic 兼容层用 x-api-key，不是 Bearer
         'x-api-key': this.#apiKey,
         'anthropic-version': '2023-06-01',
+        // 引用 Files API 上传的文件时必须带这个 beta 标记
+        ...(hasFileRef(input) ? { 'anthropic-beta': 'files-api-2025-04-14' } : {}),
       },
       body: this.#body(input, true),
       signal: this.#signal(ctx),

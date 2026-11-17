@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import art.kaogong.xiaonian.data.ChatStreamEvent
 import art.kaogong.xiaonian.data.ConversationDto
+import art.kaogong.xiaonian.data.FileRef
 import art.kaogong.xiaonian.data.MessageDto
 import art.kaogong.xiaonian.data.VoiceRecorder
 import art.kaogong.xiaonian.data.XiaonianApi
@@ -36,10 +37,22 @@ data class UiMessage(
     val reasoningExpanded: Boolean = false,
 )
 
+/** 已上传、等待随消息发出的附件 */
+data class PendingAttachment(
+    val fileId: String,
+    val name: String,
+    val mime: String,
+    val size: Long,
+) {
+    val isImage: Boolean get() = mime.startsWith("image/")
+}
+
 data class ChatUiState(
     val conversations: List<ConversationDto> = emptyList(),
     val activeConversationId: String? = null,
     val messages: List<UiMessage> = emptyList(),
+    val attachments: List<PendingAttachment> = emptyList(),
+    val uploading: Boolean = false,
     val streaming: Boolean = false,
     val recording: Boolean = false,
     val transcribing: Boolean = false,
@@ -92,6 +105,30 @@ class ChatViewModel(
         _state.update { it.copy(thinking = !it.thinking) }
     }
 
+    // ------------------------------------------------------------ 附件
+
+    fun uploadAttachment(bytes: ByteArray, name: String, mime: String) {
+        if (_state.value.uploading) return
+        _state.update { it.copy(uploading = true, error = null) }
+        viewModelScope.launch {
+            runCatching { api.uploadFile(bytes, name, mime) }
+                .onSuccess { f ->
+                    _state.update { s ->
+                        s.copy(
+                            attachments = s.attachments +
+                                PendingAttachment(f.fileId, f.name, f.mime, f.size),
+                        )
+                    }
+                }
+                .onFailure { e -> _state.update { it.copy(error = "上传失败：${e.message}") } }
+            _state.update { it.copy(uploading = false) }
+        }
+    }
+
+    fun removeAttachment(fileId: String) {
+        _state.update { s -> s.copy(attachments = s.attachments.filterNot { it.fileId == fileId }) }
+    }
+
     // ------------------------------------------------------------ 语音输入
 
     /** 返回 false 表示录音起不来（通常是没权限或设备不支持） */
@@ -138,7 +175,19 @@ class ChatViewModel(
     fun send(text: String) {
         val content = text.trim()
         val snapshot = _state.value
-        if (content.isEmpty() || snapshot.streaming) return
+        if (snapshot.streaming) return
+        // 允许只发附件不写文字
+        if (content.isEmpty() && snapshot.attachments.isEmpty()) return
+
+        val files = snapshot.attachments.map {
+            FileRef(
+                fileId = it.fileId,
+                kind = if (it.isImage) "image" else "document",
+                name = it.name,
+                mime = it.mime,
+                size = it.size,
+            )
+        }
 
         streamJob = viewModelScope.launch {
             val localAssistantId = "a-" + UUID.randomUUID()
@@ -164,6 +213,7 @@ class ChatViewModel(
                     text = content,
                     thinking = snapshot.thinking,
                     webSearch = snapshot.webSearch,
+                    files = files,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Accepted -> remoteAssistantId = event.assistantMessageId
@@ -186,30 +236,21 @@ class ChatViewModel(
                             updateMessage(localAssistantId) { it.copy(streaming = false) }
                         is ChatStreamEvent.Failed ->
                             updateMessage(localAssistantId) {
-                                it.copy(
-                                    streaming = false,
-                                    failed = true,
-                                    text = if (it.text.isBlank()) event.message else it.text,
-                                )
+                                // 失败文案由下方统一提示，别把错误再塞进正文里
+                                it.copy(streaming = false, failed = true)
                             }
                     }
                 }
 
-                _state.update { it.copy(streaming = false) }
+                _state.update { it.copy(streaming = false, attachments = emptyList()) }
                 refreshConversations()
             } catch (cancel: CancellationException) {
                 updateMessage(localAssistantId) { it.copy(streaming = false) }
                 _state.update { it.copy(streaming = false) }
                 throw cancel
             } catch (e: Exception) {
-                updateMessage(localAssistantId) {
-                    it.copy(
-                        streaming = false,
-                        failed = true,
-                        text = if (it.text.isBlank()) (e.message ?: "发送失败") else it.text,
-                    )
-                }
-                _state.update { it.copy(streaming = false, error = e.message) }
+                updateMessage(localAssistantId) { it.copy(streaming = false, failed = true) }
+                _state.update { it.copy(streaming = false, error = "发送失败：${e.message ?: "未知错误"}") }
             } finally {
                 remoteAssistantId = null
             }

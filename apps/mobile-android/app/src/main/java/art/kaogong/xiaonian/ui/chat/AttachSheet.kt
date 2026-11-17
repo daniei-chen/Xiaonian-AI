@@ -48,6 +48,8 @@ fun AttachSheet(
     thinking: Boolean,
     onToggleWebSearch: () -> Unit,
     onToggleThinking: () -> Unit,
+    onPickImage: () -> Unit,
+    onPickFile: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -71,8 +73,8 @@ fun AttachSheet(
     ) {
         Column(modifier = Modifier.padding(bottom = 26.dp)) {
             SheetItem(Icons.Outlined.PhotoCamera, "拍照", enabled = false)
-            SheetItem(Icons.Outlined.Image, "照片", enabled = false)
-            SheetItem(Icons.Outlined.AttachFile, "文件", enabled = false)
+            SheetItem(Icons.Outlined.Image, "照片", onClick = onPickImage)
+            SheetItem(Icons.Outlined.AttachFile, "文件", onClick = onPickFile)
             SheetItem(
                 icon = Icons.Outlined.Public,
                 label = "联网搜索",
