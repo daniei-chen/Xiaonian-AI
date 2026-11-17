@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import art.kaogong.xiaonian.data.ChatStreamEvent
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.data.FileRef
 import art.kaogong.xiaonian.data.MessageDto
@@ -74,11 +76,13 @@ data class ChatUiState(
 
 class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
-    /** 每次请求现取地址，用户在设置里改完立即生效 */
-    private val api = XiaonianApi { Settings.baseUrl(Settings.provider(app)) }
-
-    /** 全本地直连上游（第一版主路径） */
+    /** 全本地：会话与消息在本机 SQLite，聊天直连上游 */
+    private val store = art.kaogong.xiaonian.data.local.LocalStore(app)
     private val chatApi = art.kaogong.xiaonian.data.DirectChatApi()
+    private val tools = art.kaogong.xiaonian.data.DirectToolsApi {
+        Settings.apiKey(app, Settings.PROVIDER_DEEPSEEK)
+    }
+    private val repo = art.kaogong.xiaonian.data.local.ChatRepository(app, store, chatApi, tools)
 
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
@@ -111,7 +115,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     fun refreshConversations() {
         viewModelScope.launch {
-            runCatching { api.listConversations() }
+            runCatching { repo.conversations() }
                 .onSuccess { list -> _state.update { it.copy(conversations = list) } }
                 .onFailure { e -> _state.update { it.copy(error = e.message) } }
         }
@@ -155,7 +159,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         if (_state.value.uploading) return
         _state.update { it.copy(uploading = true, error = null) }
         viewModelScope.launch {
-            runCatching { api.fetchPage(url) }
+            runCatching { repo.tool.fetchPage(url).second }
                 .onSuccess { text ->
                     if (text.isBlank()) {
                         _state.update { it.copy(error = "这个链接没有取到正文") }
@@ -175,7 +179,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         if (_state.value.uploading) return
         _state.update { it.copy(uploading = true, error = null) }
         viewModelScope.launch {
-            runCatching { api.ocr(bytes, name, mime) }
+            runCatching { repo.tool.ocr(bytes, name, mime) }
                 .onSuccess { text ->
                     if (text.isBlank()) {
                         _state.update { it.copy(error = "这张图里没识别到文字") }
@@ -194,7 +198,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         if (_state.value.uploading) return
         _state.update { it.copy(uploading = true, error = null) }
         viewModelScope.launch {
-            runCatching { api.uploadFile(bytes, name, mime) }
+            runCatching { repo.tool.upload(bytes, name, mime) }
                 .onSuccess { f ->
                     _state.update { s ->
                         s.copy(
@@ -234,7 +238,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
         _state.update { it.copy(transcribing = true) }
         viewModelScope.launch {
-            runCatching { api.transcribe(wav) }
+            runCatching { repo.tool.transcribe(wav, "recording.wav", "audio/wav") }
                 .onSuccess { text ->
                     if (text.isBlank()) {
                         _state.update { it.copy(error = "没听到清晰语音，请再说一次") }
@@ -269,7 +273,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
         _state.update { it.copy(transcribing = true) }
         viewModelScope.launch {
-            val text = runCatching { api.transcribe(wav) }.getOrNull().orEmpty()
+            val text = runCatching { repo.tool.transcribe(wav, "recording.wav", "audio/wav") }
+                .getOrNull().orEmpty()
             _state.update { it.copy(transcribing = false) }
 
             if (text.isBlank()) {
@@ -287,7 +292,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val trimmed = text.trim()
         if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val bytes = runCatching { api.synthesize(trimmed.take(600)) }.getOrNull()
+            val bytes = runCatching { repo.tool.synthesize(trimmed.take(600)) }.getOrNull()
             if (bytes != null && bytes.isNotEmpty()) _voiceAudio.emit(bytes)
         }
     }
@@ -300,6 +305,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         continueGeneration: Boolean = false,
         /** 本地也要先裁掉这些，UI 才不会闪一下旧消息 */
         trimAfterLocalId: String? = null,
+        /** 重新生成：先从本地库删掉最后一条回答 */
+        dropLastAssistant: Boolean = false,
     ) {
         val content = text.trim()
         val snapshot = _state.value
@@ -346,20 +353,29 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
             try {
                 val conversationId = _state.value.activeConversationId
-                    ?: api.createConversation().also { created ->
-                        _state.update { it.copy(activeConversationId = created.id) }
-                    }.id
+                    ?: repo.createConversation().also { created ->
+                        _state.update { it.copy(activeConversationId = created) }
+                    }
 
-                api.streamMessage(
+                if (dropLastAssistant) {
+                    withContext(Dispatchers.IO) { repo.dropLastTurn(conversationId) }
+                }
+
+                val continueFrom = if (continueGeneration) {
+                    withContext(Dispatchers.IO) { repo.lastAssistant(conversationId) }
+                } else {
+                    null
+                }
+
+                repo.send(
                     conversationId = conversationId,
                     text = content,
                     thinking = snapshot.thinking,
-                    webSearch = snapshot.webSearch,
-                    deepSearch = snapshot.deepSearch,
                     effort = snapshot.effort,
                     files = files,
-                    replayFromMessageId = replayFromMessageId,
-                    continueGeneration = continueGeneration,
+                    webSearch = snapshot.webSearch,
+                    deepSearch = snapshot.deepSearch,
+                    continueFrom = continueFrom,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Accepted -> remoteAssistantId = event.assistantMessageId
@@ -382,11 +398,13 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
                             }
                         is ChatStreamEvent.Completed ->
                             updateMessage(localAssistantId) { it.copy(streaming = false) }
-                        is ChatStreamEvent.Failed ->
+                        is ChatStreamEvent.Failed -> {
+                            android.util.Log.e("ChatViewModel", "stream failed: ${event.code} / ${event.message}")
                             updateMessage(localAssistantId) {
                                 // 失败文案由下方统一提示，别把错误再塞进正文里
                                 it.copy(streaming = false, failed = true)
                             }
+                        }
                     }
                 }
 
@@ -422,8 +440,8 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
         val userMessage = messages.take(idx).lastOrNull { it.fromUser } ?: return
         send(
             text = userMessage.text,
-            replayFromMessageId = userMessage.id,
             trimAfterLocalId = userMessage.id,
+            dropLastAssistant = true,
         )
     }
 
@@ -433,7 +451,11 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     fun exportHistory() {
         viewModelScope.launch {
-            runCatching { api.exportHistory() }
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    art.kaogong.xiaonian.data.local.HistoryArchive.export(store)
+                }
+            }
                 .onSuccess { bytes -> if (bytes.isNotEmpty()) _exportBytes.emit(bytes) }
                 .onFailure { e ->
                     _state.update { it.copy(error = "导出失败：${e.message}") }
@@ -443,10 +465,14 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
 
     fun importHistory(bytes: ByteArray) {
         viewModelScope.launch {
-            runCatching { api.importHistory(bytes) }
-                .onSuccess { result ->
+            runCatching {
+                withContext(Dispatchers.IO) {
+                    art.kaogong.xiaonian.data.local.HistoryArchive.import(store, bytes)
+                }
+            }
+                .onSuccess { (conversations, messages) ->
                     _state.update {
-                        it.copy(error = "已导入 ${result.conversations} 个会话、${result.messages} 条消息")
+                        it.copy(error = "已导入 $conversations 个会话、$messages 条消息")
                     }
                     refreshConversations()
                 }
@@ -463,9 +489,7 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun stop() {
-        remoteAssistantId?.let { id ->
-            viewModelScope.launch { api.stop(id) }
-        }
+        // 本地模式下"停止"就是取消协程，没有服务端任务要收
         streamJob?.cancel()
         streamJob = null
         _state.update { it.copy(streaming = false) }
@@ -488,12 +512,12 @@ class ChatViewModel(app: Application) : AndroidViewModel(app) {
     fun openConversation(id: String) {
         if (_state.value.streaming) return
         viewModelScope.launch {
-            runCatching { api.loadConversation(id) }
-                .onSuccess { detail ->
+            runCatching { repo.messages(id) }
+                .onSuccess { messages ->
                     _state.update {
                         it.copy(
                             activeConversationId = id,
-                            messages = detail.messages.map(::toUiMessage),
+                            messages = messages.map(::toUiMessage),
                             streaming = false,
                             error = null,
                         )
