@@ -35,6 +35,8 @@ import kotlinx.coroutines.launch
 @Composable
 fun XiaonianApp(
     viewModel: ChatViewModel = viewModel(),
+    /** 主题色在 MainActivity 层持有，这里只负责把选择往上传 */
+    onAccentChange: (art.kaogong.xiaonian.ui.theme.AccentTheme) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
@@ -348,6 +350,7 @@ fun XiaonianApp(
                 viewModel.testUpstream(picked, key, Settings.model(context), callback)
             },
             onClearAll = { viewModel.clearAll() },
+            onAccentChange = onAccentChange,
         )
     }
 

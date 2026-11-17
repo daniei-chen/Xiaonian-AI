@@ -31,6 +31,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.Settings
+import art.kaogong.xiaonian.ui.theme.AccentTheme
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /** 设置页需要读写的全部状态 */
@@ -60,6 +62,7 @@ fun SettingsDialog(
     onSave: (SettingsValues) -> Unit,
     onTest: (provider: String, apiKey: String, (Boolean, String) -> Unit) -> Unit,
     onClearAll: () -> Unit,
+    onAccentChange: (AccentTheme) -> Unit,
 ) {
     var values by remember { mutableStateOf(initial) }
     var testing by remember { mutableStateOf(false) }
@@ -72,6 +75,27 @@ fun SettingsDialog(
         title = { Text("设置", style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
+                SectionLabel("主题色")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    AccentTheme.entries.forEach { theme ->
+                        val active = theme == LocalAccent.current
+                        Text(
+                            text = theme.label,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = if (active) Color.White else XiaonianColors.InkSecondary,
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(if (active) theme.accent else XiaonianColors.SurfaceMuted)
+                                .clickable { onAccentChange(theme) }
+                                .padding(horizontal = 14.dp, vertical = 7.dp),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                HorizontalDivider(color = XiaonianColors.Divider)
+                Spacer(Modifier.height(12.dp))
+
                 SectionLabel("模型")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Chip(
@@ -254,7 +278,7 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
         color = if (active) Color.White else XiaonianColors.InkSecondary,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (active) XiaonianColors.Accent else XiaonianColors.SurfaceMuted)
+            .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )

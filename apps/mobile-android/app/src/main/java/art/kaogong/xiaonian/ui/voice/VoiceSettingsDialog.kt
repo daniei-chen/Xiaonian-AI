@@ -24,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -112,7 +113,7 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
         color = if (active) Color.White else XiaonianColors.InkSecondary,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (active) XiaonianColors.Accent else XiaonianColors.SurfaceMuted)
+            .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )

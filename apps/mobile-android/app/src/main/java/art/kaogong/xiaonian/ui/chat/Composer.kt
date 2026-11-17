@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -101,7 +102,7 @@ fun Composer(
                     .weight(1f)
                     .padding(vertical = 15.dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = XiaonianColors.Ink),
-                cursorBrush = SolidColor(XiaonianColors.Accent),
+                cursorBrush = SolidColor(LocalAccent.current.accent),
                 maxLines = 5,
                 decorationBox = { inner ->
                     Box {
@@ -151,7 +152,7 @@ fun Composer(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(XiaonianColors.Accent)
+                .background(LocalAccent.current.accent)
                 .clickable {
                     when {
                         streaming -> onStop()

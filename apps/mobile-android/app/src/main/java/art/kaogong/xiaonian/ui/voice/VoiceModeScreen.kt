@@ -57,6 +57,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.R
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -191,7 +192,7 @@ fun VoiceModeScreen(
 
             PressableCircle(
                 size = 52.dp,
-                background = if (speaking) XiaonianColors.Accent else XiaonianColors.SurfaceMuted,
+                background = if (speaking) LocalAccent.current.accent else XiaonianColors.SurfaceMuted,
                 onClick = { if (speaking) onStopSpeaking() },
             ) {
                 Icon(
@@ -311,15 +312,17 @@ private fun VoiceOrb(
 /** 输入条内部右侧那个紫圆环（环 + 偏左下的小点） */
 @Composable
 private fun PurpleRing() {
+    // Canvas 的 draw lambda 不是 @Composable，先在外面读当前主题色
+    val ringColor = LocalAccent.current.accent
     Canvas(modifier = Modifier.size(28.dp)) {
         val r = size.minDimension / 2f
         drawCircle(
-            color = XiaonianColors.Accent,
+            color = ringColor,
             radius = r - 1.4.dp.toPx(),
             style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2.dp.toPx()),
         )
         drawCircle(
-            color = XiaonianColors.Accent,
+            color = ringColor,
             radius = r * 0.21f,
             center = androidx.compose.ui.geometry.Offset(size.width * 0.40f, size.height * 0.62f),
         )

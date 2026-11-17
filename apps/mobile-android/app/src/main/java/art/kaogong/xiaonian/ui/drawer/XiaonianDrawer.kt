@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.ui.components.CircleIconButton
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -165,7 +166,7 @@ fun XiaonianDrawer(
                 Row(
                     modifier = Modifier
                         .clip(CircleShape)
-                        .background(XiaonianColors.Accent)
+                        .background(LocalAccent.current.accent)
                         .clickable(onClick = onNewChat)
                         .padding(horizontal = 20.dp, vertical = 13.dp),
                     verticalAlignment = Alignment.CenterVertically,

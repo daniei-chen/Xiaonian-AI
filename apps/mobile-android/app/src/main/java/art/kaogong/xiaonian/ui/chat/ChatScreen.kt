@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 @Composable
@@ -168,7 +169,7 @@ private fun ErrorLine(
         Text(
             text = "知道了",
             style = MaterialTheme.typography.labelSmall,
-            color = XiaonianColors.Accent,
+            color = LocalAccent.current.accent,
             modifier = Modifier
                 .clip(RoundedCornerShape(8.dp))
                 .clickable(onClick = onDismiss)

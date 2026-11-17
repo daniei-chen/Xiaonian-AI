@@ -24,6 +24,7 @@ object Settings {
     private const val KEY_FONT_SCALE = "font_scale"
     private const val KEY_TTS_RATE = "tts_rate"
     private const val KEY_TTS_VOICE = "tts_voice"
+    private const val KEY_ACCENT = "accent_theme"
 
     /** zhihui：便宜、快，OpenAI 协议；deepseek：官方，支持文件引用与引用编号 */
     const val PROVIDER_ZHIHUI = "zhihui"
@@ -120,5 +121,13 @@ object Settings {
 
     fun setTtsVoice(context: Context, value: String) {
         prefs(context).edit().putString(KEY_TTS_VOICE, value.trim()).apply()
+    }
+
+    /** 强调色主题：purple / black / green / blue / orange */
+    fun accentTheme(context: Context): String =
+        prefs(context).getString(KEY_ACCENT, null) ?: "purple"
+
+    fun setAccentTheme(context: Context, id: String) {
+        prefs(context).edit().putString(KEY_ACCENT, id).apply()
     }
 }

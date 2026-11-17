@@ -37,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -134,7 +135,7 @@ private fun EffortRow(current: String, onChange: (String) -> Unit) {
                 color = if (active) Color.White else XiaonianColors.InkSecondary,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (active) XiaonianColors.Accent else XiaonianColors.SurfaceMuted)
+                    .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
                     .clickable { onChange(value) }
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             )
@@ -190,7 +191,7 @@ private fun SheetItem(
             Icon(
                 imageVector = Icons.Outlined.Check,
                 contentDescription = "已开启",
-                tint = XiaonianColors.Accent,
+                tint = LocalAccent.current.accent,
                 modifier = Modifier.size(20.dp),
             )
         }

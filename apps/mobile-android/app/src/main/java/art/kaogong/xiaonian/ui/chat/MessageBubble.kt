@@ -42,6 +42,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.markdown.MarkdownText
+import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -250,13 +251,13 @@ private fun CitationList(citations: List<UiCitation>) {
                     modifier = Modifier
                         .size(18.dp)
                         .clip(CircleShape)
-                        .background(XiaonianColors.Accent.copy(alpha = 0.12f)),
+                        .background(LocalAccent.current.accent.copy(alpha = 0.12f)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "${citation.index}",
                         style = MaterialTheme.typography.labelSmall,
-                        color = XiaonianColors.AccentDeep,
+                        color = LocalAccent.current.deep,
                     )
                 }
 
