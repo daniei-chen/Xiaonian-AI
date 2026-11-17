@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import art.kaogong.xiaonian.ui.chat.AttachSheet
 import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
@@ -39,6 +40,7 @@ fun XiaonianApp(
     var mode by remember { mutableStateOf(ChatMode.Chat) }
     var input by remember { mutableStateOf("") }
     var voiceMode by remember { mutableStateOf(false) }
+    var showAttach by remember { mutableStateOf(false) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
 
@@ -125,8 +127,18 @@ fun XiaonianApp(
             onStop = { viewModel.stop() },
             onVoiceInput = onVoiceInput,
             onOpenVoiceMode = { voiceMode = true },
-            onAttach = {},
+            onAttach = { showAttach = true },
             onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
+        )
+    }
+
+    if (showAttach) {
+        AttachSheet(
+            webSearch = state.webSearch,
+            thinking = state.thinking,
+            onToggleWebSearch = { viewModel.toggleWebSearch() },
+            onToggleThinking = { viewModel.toggleThinking() },
+            onDismiss = { showAttach = false },
         )
     }
 }

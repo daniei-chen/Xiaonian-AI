@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -31,6 +32,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,6 +40,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.markdown.MarkdownText
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -51,7 +54,24 @@ fun MessageList(
     onToggleReasoning: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val listState = rememberLazyListState()
+
+    // 新消息与流式增量都要跟到底部，否则回答和引用会落在可视区外
+    val last = messages.lastOrNull()
+    LaunchedEffect(
+        messages.size,
+        last?.id,
+        last?.text?.length ?: 0,
+        last?.reasoning?.length ?: 0,
+        last?.citations?.size ?: 0,
+    ) {
+        if (messages.isNotEmpty()) {
+            listState.scrollToItem(messages.lastIndex, scrollOffset = 100_000)
+        }
+    }
+
     LazyColumn(
+        state = listState,
         modifier = modifier.fillMaxWidth(),
         contentPadding = PaddingValues(vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
@@ -122,11 +142,7 @@ private fun AssistantMessage(
         }
 
         when {
-            message.text.isNotBlank() -> Text(
-                text = message.text,
-                style = MaterialTheme.typography.bodyLarge,
-                color = XiaonianColors.Ink,
-            )
+            message.text.isNotBlank() -> MarkdownText(markdown = message.text)
             message.streaming -> TypingDots()
             message.failed -> Text(
                 text = "生成失败，点上方按钮重试",

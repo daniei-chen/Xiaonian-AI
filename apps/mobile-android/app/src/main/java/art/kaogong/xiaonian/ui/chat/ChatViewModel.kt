@@ -45,6 +45,8 @@ data class ChatUiState(
     val transcribing: Boolean = false,
     /** 联网搜索开关 */
     val webSearch: Boolean = false,
+    /** 深入思考开关 */
+    val thinking: Boolean = false,
     val error: String? = null,
 )
 
@@ -84,6 +86,10 @@ class ChatViewModel(
 
     fun toggleWebSearch() {
         _state.update { it.copy(webSearch = !it.webSearch) }
+    }
+
+    fun toggleThinking() {
+        _state.update { it.copy(thinking = !it.thinking) }
     }
 
     // ------------------------------------------------------------ 语音输入
@@ -156,7 +162,7 @@ class ChatViewModel(
                 api.streamMessage(
                     conversationId = conversationId,
                     text = content,
-                    thinking = false,
+                    thinking = snapshot.thinking,
                     webSearch = snapshot.webSearch,
                 ).collect { event ->
                     when (event) {
