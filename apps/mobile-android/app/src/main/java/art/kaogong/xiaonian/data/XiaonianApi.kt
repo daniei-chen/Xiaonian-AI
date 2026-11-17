@@ -187,12 +187,16 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
         thinking: Boolean,
         webSearch: Boolean = false,
         files: List<FileRef> = emptyList(),
+        replayFromMessageId: String? = null,
+        continueGeneration: Boolean = false,
     ): Flow<ChatStreamEvent> = callbackFlow {
         val payload = buildJsonObject {
             put("text", text)
             put("thinking", thinking)
             put("webSearch", webSearch)
             put("maxTokens", 2048)
+            if (replayFromMessageId != null) put("replayFromMessageId", replayFromMessageId)
+            if (continueGeneration) put("continueGeneration", true)
             if (files.isNotEmpty()) {
                 put("files", buildJsonArray {
                     files.forEach { f ->

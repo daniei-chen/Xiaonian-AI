@@ -21,7 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +52,8 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 fun MessageList(
     messages: List<UiMessage>,
     onToggleReasoning: (String) -> Unit,
+    onRegenerate: (String) -> Unit,
+    onContinue: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -76,11 +78,17 @@ fun MessageList(
         contentPadding = PaddingValues(vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        items(messages, key = { it.id }) { message ->
+        itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
             if (message.fromUser) {
                 UserBubble(message)
             } else {
-                AssistantMessage(message, onToggleReasoning)
+                AssistantMessage(
+                    message = message,
+                    onToggleReasoning = onToggleReasoning,
+                    onRegenerate = onRegenerate,
+                    onContinue = onContinue,
+                    isLast = index == messages.lastIndex,
+                )
             }
         }
     }
@@ -114,6 +122,9 @@ private fun UserBubble(message: UiMessage) {
 private fun AssistantMessage(
     message: UiMessage,
     onToggleReasoning: (String) -> Unit,
+    onRegenerate: (String) -> Unit,
+    onContinue: () -> Unit,
+    isLast: Boolean,
 ) {
     Column(
         modifier = Modifier
@@ -155,7 +166,29 @@ private fun AssistantMessage(
             Spacer(Modifier.height(10.dp))
             CitationList(message.citations)
         }
+
+        if (!message.streaming && message.text.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                MessageAction("重新生成") { onRegenerate(message.id) }
+                if (isLast) MessageAction("继续") { onContinue() }
+            }
+        }
     }
+}
+
+/** 助手消息下方的小操作，低饱和以免和正文抢注意力 */
+@Composable
+private fun MessageAction(label: String, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = XiaonianColors.InkSecondary,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 6.dp, vertical = 3.dp),
+    )
 }
 
 /** 引用来源：序号圆 + 标题 + 域名。正文里的 [n] 与之对应 */

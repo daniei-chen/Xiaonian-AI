@@ -172,12 +172,18 @@ class ChatViewModel(
 
     // ------------------------------------------------------------ 对话
 
-    fun send(text: String) {
+    fun send(
+        text: String,
+        replayFromMessageId: String? = null,
+        continueGeneration: Boolean = false,
+        /** 本地也要先裁掉这些，UI 才不会闪一下旧消息 */
+        trimAfterLocalId: String? = null,
+    ) {
         val content = text.trim()
         val snapshot = _state.value
         if (snapshot.streaming) return
-        // 允许只发附件不写文字
-        if (content.isEmpty() && snapshot.attachments.isEmpty()) return
+        // 允许只发附件不写文字；继续生成则不需要文字
+        if (content.isEmpty() && snapshot.attachments.isEmpty() && !continueGeneration) return
 
         val files = snapshot.attachments.map {
             FileRef(
@@ -192,13 +198,27 @@ class ChatViewModel(
         streamJob = viewModelScope.launch {
             val localAssistantId = "a-" + UUID.randomUUID()
 
-            _state.update {
-                it.copy(
+            _state.update { current ->
+                var base = current.messages
+                if (trimAfterLocalId != null) {
+                    val idx = base.indexOfFirst { it.id == trimAfterLocalId }
+                    if (idx >= 0) base = base.take(idx)
+                }
+
+                val added = mutableListOf<UiMessage>()
+                if (!continueGeneration) {
+                    added += UiMessage(
+                        id = "u-" + UUID.randomUUID(),
+                        fromUser = true,
+                        text = content,
+                    )
+                }
+                added += UiMessage(id = localAssistantId, fromUser = false, streaming = true)
+
+                current.copy(
                     error = null,
                     streaming = true,
-                    messages = it.messages +
-                        UiMessage(id = "u-" + UUID.randomUUID(), fromUser = true, text = content) +
-                        UiMessage(id = localAssistantId, fromUser = false, streaming = true),
+                    messages = base + added,
                 )
             }
 
@@ -214,6 +234,8 @@ class ChatViewModel(
                     thinking = snapshot.thinking,
                     webSearch = snapshot.webSearch,
                     files = files,
+                    replayFromMessageId = replayFromMessageId,
+                    continueGeneration = continueGeneration,
                 ).collect { event ->
                     when (event) {
                         is ChatStreamEvent.Accepted -> remoteAssistantId = event.assistantMessageId
@@ -255,6 +277,25 @@ class ChatViewModel(
                 remoteAssistantId = null
             }
         }
+    }
+
+    /** 重新生成某条回答：找到它前面那条用户消息，从那里重放 */
+    fun regenerate(assistantId: String) {
+        val messages = _state.value.messages
+        val idx = messages.indexOfFirst { it.id == assistantId }
+        if (idx <= 0) return
+        val userMessage = messages.take(idx).lastOrNull { it.fromUser } ?: return
+        send(
+            text = userMessage.text,
+            replayFromMessageId = userMessage.id,
+            trimAfterLocalId = userMessage.id,
+        )
+    }
+
+    /** 接着最后一条回答继续写 */
+    fun continueGeneration() {
+        if (_state.value.messages.none { !it.fromUser && it.text.isNotBlank() }) return
+        send(text = "", continueGeneration = true)
     }
 
     fun stop() {

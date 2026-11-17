@@ -50,6 +50,8 @@ fun ChatScreen(
     onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
     onToggleReasoning: (String) -> Unit,
+    onRegenerate: (String) -> Unit,
+    onContinue: () -> Unit,
     onRemoveAttachment: (String) -> Unit = {},
 ) {
     Scaffold(
@@ -112,6 +114,8 @@ fun ChatScreen(
                 MessageList(
                     messages = state.messages,
                     onToggleReasoning = onToggleReasoning,
+                    onRegenerate = onRegenerate,
+                    onContinue = onContinue,
                     modifier = Modifier.weight(1f),
                 )
 

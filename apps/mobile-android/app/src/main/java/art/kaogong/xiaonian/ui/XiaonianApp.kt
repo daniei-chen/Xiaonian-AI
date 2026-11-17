@@ -151,6 +151,8 @@ fun XiaonianApp(
             onOpenVoiceMode = { voiceMode = true },
             onAttach = { showAttach = true },
             onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
+            onRegenerate = { id -> viewModel.regenerate(id) },
+            onContinue = { viewModel.continueGeneration() },
             onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
         )
     }

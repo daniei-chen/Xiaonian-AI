@@ -150,6 +150,10 @@ export const registerConversationRoutes = (
       }>
       /** 显式指定 provider，不传走默认 */
       provider?: string
+      /** 从这个消息开始重放：先删掉它及其之后的所有消息，再重新生成 */
+      replayFromMessageId?: string
+      /** 继续生成：取最后一条助手回答，接着写 */
+      continueGeneration?: boolean
     }
   }>('/api/v1/conversations/:id/messages', async (req, reply) => {
     const traceId = String(req.id)
@@ -158,7 +162,35 @@ export const registerConversationRoutes = (
       return reply.code(404).send(apiError('not_found', 'conversation not found', traceId))
     }
 
-    const text = (req.body?.text ?? '').trim()
+    // 重放：删掉目标消息及其之后的全部消息，等同于"从未发生过"
+    const replayFrom = req.body?.replayFromMessageId
+    if (replayFrom) {
+      const target = await repo.getMessage(db, replayFrom)
+      if (target && target.conversationId === conversation.id) {
+        await db.query(
+          `DELETE FROM messages WHERE conversation_id = $1 AND seq >= $2`,
+          [conversation.id, target.seq],
+        )
+      }
+    }
+
+    const wantContinue = req.body?.continueGeneration === true
+    let text = (req.body?.text ?? '').trim()
+
+    if (wantContinue) {
+      const history = await repo.listMessages(db, conversation.id)
+      const lastAssistant = [...history].reverse().find((m) => m.role === 'assistant')
+      if (!lastAssistant) {
+        return reply
+          .code(400)
+          .send(apiError('bad_request', 'nothing to continue from', traceId))
+      }
+      // 用提示词驱动续写，比依赖 assistant 预填充更稳（各兼容层支持不一致）
+      text =
+        '请直接接着你上一条回答继续输出剩余内容。不要重复已经说过的部分，' +
+        '不要加任何开场白或说明。'
+    }
+
     const fileRefs = req.body?.files ?? []
     // 允许只发附件不写文字
     if (!text && fileRefs.length === 0) {
