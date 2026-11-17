@@ -13,6 +13,7 @@ import type {
   ChatStreamEvent,
   ProviderCaps,
 } from '../../capability.js'
+import { readSse } from '../../sse.js'
 
 /** 上游错误，已归一成统一错误码 */
 export class UpstreamError extends Error {
@@ -48,6 +49,18 @@ interface OpenAiResponse {
   choices?: OpenAiChoice[]
   usage?: OpenAiUsage
   error?: { message?: string; code?: string }
+}
+
+/** 流式分片。delta 里 content 与 reasoning_content 互不影响。 */
+interface OpenAiChunk {
+  model?: string
+  choices?: Array<{
+    index?: number
+    delta?: { role?: string; content?: string | null; reasoning_content?: string | null }
+    finish_reason?: string | null
+  }>
+  usage?: OpenAiUsage
+  error?: { message?: string }
 }
 
 export interface OpenAiChatOptions {
@@ -193,8 +206,147 @@ export class OpenAiChatCapability implements ChatCapability {
     }
   }
 
-  stream(_input: ChatInput, _ctx: CallCtx): AsyncIterable<ChatStreamEvent> {
-    // WP3 实现：SSE 解析 + 块级状态机
-    throw new UpstreamError('internal', undefined, 'openai.stream not implemented yet (WP3)')
+  async *stream(input: ChatInput, ctx: CallCtx): AsyncIterable<ChatStreamEvent> {
+    const model = input.model ?? this.#defaultModel
+    const res = await fetch(`${this.#baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+        Authorization: `Bearer ${this.#apiKey}`,
+      },
+      body: this.#body(input, ctx, true),
+      signal: this.#signal(ctx),
+    })
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => '')
+      let message = text || res.statusText
+      try {
+        const parsed = JSON.parse(text) as OpenAiResponse
+        if (parsed.error?.message) message = parsed.error.message
+      } catch {
+        /* 非 JSON 响应体直接透出原文 */
+      }
+      throw new UpstreamError(mapUpstreamStatus(res.status), res.status, message)
+    }
+    if (!res.body) {
+      throw new UpstreamError('protocol_violation', res.status, 'upstream returned no body')
+    }
+
+    yield { type: 'start', provider: this.provider, model }
+
+    let nextIndex = 0
+    let textIndex = -1
+    let reasoningIndex = -1
+    let finish: ChatOutput['finishReason'] = 'end_turn'
+    let sawFinish = false
+    let sawDone = false
+    let usage: UsageSummary = emptyUsage()
+
+    for await (const frame of readSse(res.body, ctx.signal)) {
+      if (frame.data === '[DONE]') {
+        sawDone = true
+        break
+      }
+
+      let chunk: OpenAiChunk
+      try {
+        chunk = JSON.parse(frame.data) as OpenAiChunk
+      } catch {
+        // 不可解析的帧跳过，不影响后续有效内容
+        continue
+      }
+
+      if (chunk.error?.message) {
+        throw new UpstreamError('upstream_error', undefined, chunk.error.message)
+      }
+      if (chunk.usage) usage = normalizeUsage(chunk.usage)
+
+      const choice = chunk.choices?.[0]
+      if (!choice) continue
+      const delta = choice.delta
+
+      if (delta?.reasoning_content) {
+        if (reasoningIndex < 0) {
+          reasoningIndex = nextIndex++
+          yield {
+            type: 'block_start',
+            index: reasoningIndex,
+            block: { type: 'reasoning', text: '' },
+          }
+        }
+        yield { type: 'reasoning_delta', index: reasoningIndex, text: delta.reasoning_content }
+      }
+
+      if (delta?.content) {
+        if (textIndex < 0) {
+          textIndex = nextIndex++
+          yield { type: 'block_start', index: textIndex, block: { type: 'text', text: '' } }
+        }
+        yield { type: 'text_delta', index: textIndex, text: delta.content }
+      }
+
+      if (choice.finish_reason) {
+        finish = mapFinishReason(choice.finish_reason)
+        sawFinish = true
+      }
+    }
+
+    // 既没有 finish_reason 也没有 [DONE]，说明流被截断
+    if (!sawFinish && !sawDone) {
+      throw new UpstreamError(
+        'stream_interrupted',
+        undefined,
+        'stream ended without finish_reason or [DONE]',
+      )
+    }
+
+    yield { type: 'usage', usage }
+    yield { type: 'finish', finishReason: finish }
+  }
+
+  /** 把流式事件累积成完整结果，供不想自己拼装的调用方使用 */
+  async streamToOutput(input: ChatInput, ctx: CallCtx): Promise<ChatOutput> {
+    const blocks: ContentBlock[] = []
+    let usage = emptyUsage()
+    let finishReason: ChatOutput['finishReason'] = 'end_turn'
+    const model = input.model ?? this.#defaultModel
+
+    for await (const ev of this.stream(input, ctx)) {
+      switch (ev.type) {
+        case 'block_start':
+          blocks[ev.index] = ev.block
+          break
+        case 'reasoning_delta':
+        case 'text_delta': {
+          const idx = ev.index
+          const existing = blocks[idx]
+          const kind = ev.type === 'text_delta' ? 'text' : 'reasoning'
+          if (existing && existing.type === kind) {
+            blocks[idx] = { ...existing, text: existing.text + ev.text }
+          } else {
+            blocks[idx] = { type: kind, text: ev.text }
+          }
+          break
+        }
+        case 'usage':
+          usage = ev.usage
+          break
+        case 'finish':
+          finishReason = ev.finishReason
+          break
+        case 'start':
+          break
+      }
+    }
+
+    return {
+      blocks: blocks.filter((b): b is ContentBlock => Boolean(b)),
+      usage,
+      finishReason,
+      provider: this.provider,
+      model,
+    }
   }
 }
