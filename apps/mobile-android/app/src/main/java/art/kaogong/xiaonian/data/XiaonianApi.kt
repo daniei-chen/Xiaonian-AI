@@ -181,6 +181,26 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
             }
         }
 
+    /** 语音合成：返回音频字节（wav），直接交给播放器 */
+    suspend fun synthesize(text: String, voiceId: String = "stella"): ByteArray =
+        withContext(Dispatchers.IO) {
+            val payload = buildJsonObject {
+                put("text", text)
+                put("voiceId", voiceId)
+                put("format", "wav")
+            }.toString()
+
+            val request = Request.Builder()
+                .url(url("/api/v1/tts"))
+                .post(payload.toRequestBody(jsonMedia))
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful) throw IOException("tts failed: ${response.code}")
+                response.body?.bytes() ?: ByteArray(0)
+            }
+        }
+
     fun streamMessage(
         conversationId: String,
         text: String,

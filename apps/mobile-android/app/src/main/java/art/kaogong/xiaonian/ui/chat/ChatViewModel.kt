@@ -11,8 +11,11 @@ import art.kaogong.xiaonian.data.XiaonianApi
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -76,6 +79,13 @@ class ChatViewModel(
 
     private val recorder = VoiceRecorder()
     private var streamJob: Job? = null
+
+    /** 语音对话模式的回答音频；UI 收集后播放 */
+    private val _voiceAudio = MutableSharedFlow<ByteArray>(extraBufferCapacity = 1)
+    val voiceAudio: SharedFlow<ByteArray> = _voiceAudio.asSharedFlow()
+
+    /** 语音对话页是否在前台，决定回答要不要自动朗读 */
+    var voiceModeActive: Boolean = false
 
     /** 服务端分配的 assistant message id，停止生成时要用 */
     private var remoteAssistantId: String? = null
@@ -168,6 +178,43 @@ class ChatViewModel(
 
     fun consumeTranscript() {
         _transcript.value = null
+    }
+
+    /**
+     * 语音对话：结束这一轮录音并自动提问。
+     * 回答会被自动朗读（见 send 结尾的 speak）。
+     */
+    fun finishVoiceTurn() {
+        if (!_state.value.recording) return
+        val wav = recorder.stop()
+        _state.update { it.copy(recording = false) }
+
+        if (wav == null) {
+            _state.update { it.copy(error = "录音太短") }
+            return
+        }
+
+        _state.update { it.copy(transcribing = true) }
+        viewModelScope.launch {
+            val text = runCatching { api.transcribe(wav) }.getOrNull().orEmpty()
+            _state.update { it.copy(transcribing = false) }
+
+            if (text.isBlank()) {
+                _state.update { it.copy(error = "没听到清晰语音，请再说一次") }
+                return@launch
+            }
+
+            _transcript.value = text
+            send(text)
+        }
+    }
+
+    /** 把回答合成语音推给 UI 播放 */
+    private fun speak(text: String) {
+        viewModelScope.launch {
+            val bytes = runCatching { api.synthesize(text.take(600)) }.getOrNull()
+            if (bytes != null && bytes.isNotEmpty()) _voiceAudio.emit(bytes)
+        }
     }
 
     // ------------------------------------------------------------ 对话
@@ -266,6 +313,15 @@ class ChatViewModel(
 
                 _state.update { it.copy(streaming = false, attachments = emptyList()) }
                 refreshConversations()
+
+                // 语音对话模式：回答落地后自动朗读
+                if (voiceModeActive) {
+                    _state.value.messages
+                        .lastOrNull { !it.fromUser }
+                        ?.text
+                        ?.takeIf { it.isNotBlank() }
+                        ?.let { speak(it) }
+                }
             } catch (cancel: CancellationException) {
                 updateMessage(localAssistantId) { it.copy(streaming = false) }
                 _state.update { it.copy(streaming = false) }

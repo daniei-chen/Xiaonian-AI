@@ -9,6 +9,7 @@ import type { Env } from './env.js'
 import { registerAsrRoutes } from './routes/asr.js'
 import { registerConversationRoutes } from './routes/conversations.js'
 import { registerFileRoutes } from './routes/files.js'
+import { registerTtsRoutes } from './routes/tts.js'
 
 export interface AppDeps {
   env: Env
@@ -78,6 +79,7 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   registerConversationRoutes(app, { db, caps })
   registerAsrRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
   registerFileRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
+  registerTtsRoutes(app, { baseURL: caps.config.tts?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

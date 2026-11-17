@@ -9,6 +9,7 @@ import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -26,6 +27,7 @@ import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
 import art.kaogong.xiaonian.ui.model.ChatMode
 import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
+import art.kaogong.xiaonian.ui.voice.VoicePlayer
 import kotlinx.coroutines.launch
 
 @Composable
@@ -104,9 +106,45 @@ fun XiaonianApp(
     }
 
     if (voiceMode) {
+        val player = remember { VoicePlayer(context) }
+
+        DisposableEffect(Unit) {
+            viewModel.voiceModeActive = true
+            onDispose {
+                viewModel.voiceModeActive = false
+                player.stop()
+            }
+        }
+
+        LaunchedEffect(Unit) {
+            viewModel.voiceAudio.collect { bytes -> player.play(bytes) }
+        }
+
         VoiceModeScreen(
-            onClose = { voiceMode = false },
+            onClose = {
+                player.stop()
+                voiceMode = false
+            },
             onOpenDrawer = { scope.launch { drawerState.open() } },
+            listening = state.recording,
+            transcribing = state.transcribing,
+            thinking = state.streaming,
+            onTapOrb = {
+                if (state.recording) {
+                    viewModel.finishVoiceTurn()
+                } else {
+                    player.stop()
+                    val granted = ContextCompat.checkSelfPermission(
+                        context,
+                        Manifest.permission.RECORD_AUDIO,
+                    ) == PackageManager.PERMISSION_GRANTED
+                    if (granted) {
+                        viewModel.startRecording()
+                    } else {
+                        permissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+                    }
+                }
+            },
         )
         return
     }

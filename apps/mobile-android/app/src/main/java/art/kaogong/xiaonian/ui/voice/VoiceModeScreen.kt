@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -71,6 +72,10 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 fun VoiceModeScreen(
     onClose: () -> Unit,
     onOpenDrawer: () -> Unit,
+    listening: Boolean = false,
+    transcribing: Boolean = false,
+    thinking: Boolean = false,
+    onTapOrb: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -104,10 +109,28 @@ fun VoiceModeScreen(
         }
 
         VoiceOrb(
+            listening = listening,
+            onTap = onTapOrb,
             modifier = Modifier
                 .align(Alignment.Center)
                 .fillMaxWidth(0.60f)
                 .aspectRatio(1f),
+        )
+
+        // 状态提示：语音模式没有文字输入框，不给反馈用户会不知道它在干什么
+        val status = when {
+            listening -> "正在听…"
+            transcribing -> "识别中…"
+            thinking -> "思考中…"
+            else -> "点一下开始说话"
+        }
+        Text(
+            text = status,
+            style = MaterialTheme.typography.bodyMedium,
+            color = XiaonianColors.InkTertiary,
+            modifier = Modifier
+                .align(Alignment.Center)
+                .offset(y = 200.dp),
         )
 
         Row(
@@ -189,7 +212,11 @@ fun VoiceModeScreen(
  * 周期都拉得很长，目的是"在动"而不是"吸引注意"。
  */
 @Composable
-private fun VoiceOrb(modifier: Modifier = Modifier) {
+private fun VoiceOrb(
+    listening: Boolean,
+    onTap: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val transition = rememberInfiniteTransition(label = "orb")
 
     val breath by transition.animateFloat(
@@ -222,7 +249,21 @@ private fun VoiceOrb(modifier: Modifier = Modifier) {
         label = "halo",
     )
 
-    Box(modifier, contentAlignment = Alignment.Center) {
+    // 录音时加一层更快的脉冲，让"它在听"这件事一眼可见
+    val pulse by transition.animateFloat(
+        initialValue = 1f,
+        targetValue = if (listening) 1.08f else 1f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(900, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulse",
+    )
+
+    Box(
+        modifier = modifier.clickable(onClick = onTap),
+        contentAlignment = Alignment.Center,
+    ) {
         Canvas(Modifier.fillMaxSize()) {
             val r = size.minDimension / 2f
             drawCircle(
@@ -245,8 +286,8 @@ private fun VoiceOrb(modifier: Modifier = Modifier) {
             modifier = Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    scaleX = breath
-                    scaleY = breath
+                    scaleX = breath * pulse
+                    scaleY = breath * pulse
                     rotationZ = sway
                 },
         )
