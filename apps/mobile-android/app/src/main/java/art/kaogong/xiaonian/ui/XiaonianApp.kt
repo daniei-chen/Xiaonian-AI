@@ -23,6 +23,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import art.kaogong.xiaonian.data.Settings
 import art.kaogong.xiaonian.ui.chat.AttachSheet
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
@@ -276,6 +278,11 @@ fun XiaonianApp(
                     input = ""
                     scope.launch { drawerState.close() }
                 },
+                onOpenVoiceMode = {
+                    voiceMode = true
+                    scope.launch { drawerState.close() }
+                },
+                onNotice = { message -> viewModel.reportError(message) },
                 onExport = {
                     viewModel.exportHistory()
                     scope.launch { drawerState.close() }
@@ -287,11 +294,6 @@ fun XiaonianApp(
                 onImport = {
                     importLauncher.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                 },
-                onOpenVoiceMode = {
-                    voiceMode = true
-                    scope.launch { drawerState.close() }
-                },
-                onNotice = { message -> viewModel.reportError(message) },
             )
         },
     ) {
@@ -330,6 +332,11 @@ fun XiaonianApp(
     }
 
     if (showSettings) {
+        Dialog(
+            onDismissRequest = { showSettings = false },
+            // 设置页是整页布局，不能用默认的窄对话框
+            properties = DialogProperties(usePlatformDefaultWidth = false),
+        ) {
         SettingsDialog(
             initial = SettingsValues(
                 provider = provider,
@@ -362,6 +369,7 @@ fun XiaonianApp(
             darkMode = darkMode,
             onDarkModeChange = onDarkModeChange,
         )
+        }
     }
 
     if (showAttach) {
