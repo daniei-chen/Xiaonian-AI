@@ -37,8 +37,7 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 @Composable
 fun ChatScreen(
     state: ChatUiState,
-    activeProvider: String,
-    onSelectProvider: (String) -> Unit,
+    modelLabel: String,
     onOpenSettings: () -> Unit,
     onOpenDrawer: () -> Unit,
     onNewChat: () -> Unit,
@@ -62,12 +61,7 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             ChatTopBar(
-                providers = listOf(
-                    art.kaogong.xiaonian.data.Settings.PROVIDER_ZHIHUI to "智汇",
-                    art.kaogong.xiaonian.data.Settings.PROVIDER_DEEPSEEK to "官方",
-                ),
-                activeProvider = activeProvider,
-                onSelectProvider = onSelectProvider,
+                modelLabel = modelLabel,
                 onOpenSettings = onOpenSettings,
                 onOpenDrawer = onOpenDrawer,
                 onNewChat = onNewChat,

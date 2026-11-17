@@ -291,11 +291,7 @@ fun XiaonianApp(
         ) {
             ChatScreen(
                 state = state,
-                activeProvider = provider,
-                onSelectProvider = { picked ->
-                    Settings.setProvider(context, picked)
-                    provider = picked
-                },
+                modelLabel = settingsModel,
             onOpenSettings = { showSettings = true },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onNewChat = {
