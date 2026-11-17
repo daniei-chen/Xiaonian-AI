@@ -125,7 +125,7 @@ fun VoiceModeScreen(
             onTap = onTapOrb,
             modifier = Modifier
                 .align(Alignment.Center)
-                .fillMaxWidth(0.60f)
+                .fillMaxWidth(0.616f)
                 .aspectRatio(1f),
         )
 

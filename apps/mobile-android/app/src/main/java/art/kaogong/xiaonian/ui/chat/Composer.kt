@@ -89,7 +89,7 @@ fun Composer(
         Row(
             modifier = Modifier
                 .weight(1f)
-                .clip(RoundedCornerShape(26.dp))
+                .clip(RoundedCornerShape(20.dp))
                 .background(LocalPalette.current.surfaceMuted)
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.Bottom,
