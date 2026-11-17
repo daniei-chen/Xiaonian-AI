@@ -2,9 +2,12 @@ import { resolve } from 'node:path'
 import {
   AnthropicChatCapability,
   CapabilityRegistry,
+  DeepSeekAsrCapability,
   DeepSeekFetchCapability,
+  DeepSeekFilesCapability,
   DeepSeekOcrCapability,
   DeepSeekSearchCapability,
+  DeepSeekTtsCapability,
   loadCapabilitiesConfig,
   OpenAiChatCapability,
   type CapabilitiesConfig,
@@ -22,6 +25,9 @@ export interface CapabilitiesRuntime {
     search: string | null
     fetch: string | null
     ocr: string | null
+    asr: string | null
+    tts: string | null
+    files: string | null
   }
 }
 
@@ -63,9 +69,9 @@ export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> 
   const defaultChatProvider =
     preferred && chatProviders.includes(preferred) ? preferred : (chatProviders[0] ?? null)
 
-  // 工具类能力：search / fetch / ocr 都走 DeepSeek 的独立工具接口。
-  // 装配进同一个 registry，这样换 anysearch 之类的 provider 只需要改配置。
-  for (const kind of ['search', 'fetch', 'ocr'] as const) {
+  // 工具类能力：search / fetch / ocr / asr / tts / files 都走 DeepSeek 的
+  // 独立工具接口。装配进同一个 registry，换 provider 只改配置。
+  for (const kind of ['search', 'fetch', 'ocr', 'asr', 'tts', 'files'] as const) {
     const section = config[kind]
     for (const [name, entry] of Object.entries(section?.providers ?? {})) {
       if (!entry.baseURL) continue
@@ -79,13 +85,30 @@ export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> 
         ...(entry.timeoutMs !== undefined ? { timeoutMs: entry.timeoutMs } : {}),
       }
 
-      if (kind === 'search') registry.register(new DeepSeekSearchCapability(opts))
-      else if (kind === 'fetch') registry.register(new DeepSeekFetchCapability(opts))
-      else registry.register(new DeepSeekOcrCapability(opts))
+      switch (kind) {
+        case 'search':
+          registry.register(new DeepSeekSearchCapability(opts))
+          break
+        case 'fetch':
+          registry.register(new DeepSeekFetchCapability(opts))
+          break
+        case 'ocr':
+          registry.register(new DeepSeekOcrCapability(opts))
+          break
+        case 'asr':
+          registry.register(new DeepSeekAsrCapability(opts))
+          break
+        case 'tts':
+          registry.register(new DeepSeekTtsCapability(opts))
+          break
+        case 'files':
+          registry.register(new DeepSeekFilesCapability(opts))
+          break
+      }
     }
   }
 
-  const pickDefault = (kind: 'search' | 'fetch' | 'ocr'): string | null => {
+  const pickDefault = (kind: 'search' | 'fetch' | 'ocr' | 'asr' | 'tts' | 'files'): string | null => {
     const list = registry.providers(kind)
     const pref = config[kind]?.default ?? null
     return pref && list.includes(pref) ? pref : (list[0] ?? null)
@@ -100,6 +123,9 @@ export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> 
       search: pickDefault('search'),
       fetch: pickDefault('fetch'),
       ocr: pickDefault('ocr'),
+      asr: pickDefault('asr'),
+      tts: pickDefault('tts'),
+      files: pickDefault('files'),
     },
   }
 }

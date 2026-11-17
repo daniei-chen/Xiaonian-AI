@@ -130,13 +130,18 @@ export interface AsrCapability extends CapabilityBase {
 export interface TtsInput {
   text: string
   voice?: string
-  format?: 'pcm' | 'wav'
+  format?: 'pcm' | 'wav' | 'mp3'
+}
+
+export interface TtsResult {
+  /** 完整音频字节（容器格式），调用方直接播放，不用自己剥头 */
+  audio: Uint8Array
+  mime: string
 }
 
 export interface TtsCapability extends CapabilityBase {
   readonly kind: 'tts'
-  /** 裸 PCM 帧流：24kHz / mono / 16-bit LE（provider 负责转成这个规格） */
-  synthesize(input: TtsInput, ctx: CallCtx): AsyncIterable<Uint8Array>
+  synthesize(input: TtsInput, ctx: CallCtx): Promise<TtsResult>
 }
 
 export interface UploadedFile {

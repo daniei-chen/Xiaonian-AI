@@ -88,9 +88,21 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   }))
 
   registerConversationRoutes(app, { db, caps })
-  registerAsrRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
-  registerFileRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
-  registerTtsRoutes(app, { baseURL: caps.config.tts?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
+  registerAsrRoutes(app, {
+    registry: caps.registry,
+    userId: DEV_USER_ID,
+    provider: caps.defaults.asr,
+  })
+  registerFileRoutes(app, {
+    registry: caps.registry,
+    userId: DEV_USER_ID,
+    provider: caps.defaults.files,
+  })
+  registerTtsRoutes(app, {
+    registry: caps.registry,
+    userId: DEV_USER_ID,
+    provider: caps.defaults.tts,
+  })
   registerTransferRoutes(app, { db, userId: DEV_USER_ID })
   registerToolRoutes(app, {
     registry: caps.registry,

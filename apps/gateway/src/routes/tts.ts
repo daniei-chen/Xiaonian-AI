@@ -1,32 +1,35 @@
 import type { FastifyInstance } from 'fastify'
-import { apiError, mapUpstreamStatus } from '@xiaonian/protocol'
-import { apiKey } from '../env.js'
-
-export interface TtsRoutesDeps {
-  baseURL: string
-}
+import type { CallCtx, CapabilityRegistry } from '@xiaonian/adapters'
+import { apiError } from '@xiaonian/protocol'
 
 /** logger 泛型放开，才能接住 buildApp 里传入的 pino 实例 */
 type LooseFastify = FastifyInstance<any, any, any, any, any>
 
+export interface TtsRoutesDeps {
+  registry: CapabilityRegistry
+  userId: string
+  provider: string | null
+}
+
 interface TtsBody {
   text?: string
   voiceId?: string
-  format?: 'wav' | 'mp3' | 'opus' | 'pcm'
+  format?: 'wav' | 'mp3'
 }
 
 /**
  * 语音合成代理。
  *
- * 直接返回音频字节而不是上传到对象存储：语音对话场景要的是"立刻能播"，
- * 多一次落盘和一次下载没有意义。
+ * 直接返回音频字节而不是上传到对象存储：语音对话场景要的是"立刻能播"。
  */
-export const registerTtsRoutes = (app: LooseFastify, { baseURL }: TtsRoutesDeps): void => {
+export const registerTtsRoutes = (
+  app: LooseFastify,
+  { registry, userId, provider }: TtsRoutesDeps,
+): void => {
   app.post<{ Body: TtsBody }>('/api/v1/tts', async (req, reply) => {
     const traceId = String(req.id)
-    const key = apiKey('DEEPSEEK_API_KEY')
-    if (!key) {
-      return reply.code(503).send(apiError('internal', 'DEEPSEEK_API_KEY missing', traceId))
+    if (!provider) {
+      return reply.code(503).send(apiError('internal', 'no tts provider configured', traceId))
     }
 
     const text = (req.body?.text ?? '').trim()
@@ -34,40 +37,25 @@ export const registerTtsRoutes = (app: LooseFastify, { baseURL }: TtsRoutesDeps)
       return reply.code(400).send(apiError('bad_request', 'text required', traceId))
     }
 
-    const format = req.body?.format ?? 'wav'
-    let res: Response
+    const ctx: CallCtx = { userId, traceId, isolationKey: userId }
+
     try {
-      res = await fetch(`${baseURL.replace(/\/+$/, '')}/v1/tools/tts`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`,
+      const result = await registry.tts(provider).synthesize(
+        {
+          text,
+          ...(req.body?.voiceId ? { voice: req.body.voiceId } : {}),
+          format: req.body?.format ?? 'wav',
         },
-        body: JSON.stringify({
-          text: text.slice(0, 4000),
-          voice_id: req.body?.voiceId ?? 'stella',
-          format,
-        }),
-      })
-    } catch (err) {
-      req.log.warn({ err }, 'tts upstream unreachable')
-      return reply.code(502).send(apiError('network', 'tts upstream unreachable', traceId))
-    }
+        ctx,
+      )
 
-    if (!res.ok) {
-      const message = await res.text().catch(() => '')
-      req.log.warn({ status: res.status, body: message.slice(0, 200) }, 'tts upstream error')
       return reply
-        .code(res.status < 500 ? res.status : 502)
-        .send(
-          apiError(mapUpstreamStatus(res.status), message.slice(0, 300) || 'tts failed', traceId),
-        )
+        .header('Content-Type', result.mime)
+        .header('Cache-Control', 'no-store')
+        .send(Buffer.from(result.audio))
+    } catch (err) {
+      req.log.warn({ err }, 'tts failed')
+      return reply.code(502).send(apiError('upstream_error', String(err), traceId))
     }
-
-    const audio = Buffer.from(await res.arrayBuffer())
-    return reply
-      .header('Content-Type', format === 'wav' ? 'audio/wav' : 'audio/mpeg')
-      .header('Cache-Control', 'no-store')
-      .send(audio)
   })
 }
