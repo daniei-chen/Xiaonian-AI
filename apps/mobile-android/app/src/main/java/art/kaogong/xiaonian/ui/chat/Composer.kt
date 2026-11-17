@@ -15,6 +15,7 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.ArrowUpward
+import androidx.compose.material.icons.outlined.GraphicEq
 import androidx.compose.material.icons.outlined.Mic
 import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material3.Icon
@@ -32,8 +33,12 @@ import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
- * 输入条：一个大圆角灰底容器 + 容器外右侧的紫色圆形主按钮。
- * 有文字时紫色按钮变发送，无文字时是语音 —— 与截图里的默认态一致。
+ * 输入条 + 右侧主按钮。
+ *
+ * 两个语音入口语义不同，不要合并：
+ * - 框内麦克风 = **语音输入**（ASR 转文字填进输入框，不自动发送）
+ * - 框外紫色圆钮 = **语音对话模式**（进全屏双向语音页）
+ * 有文字时紫色圆钮变发送；生成中变停止。
  */
 @Composable
 fun Composer(
@@ -42,7 +47,8 @@ fun Composer(
     onSend: () -> Unit,
     onStop: () -> Unit,
     streaming: Boolean,
-    onVoice: () -> Unit,
+    onVoiceInput: () -> Unit,
+    onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -89,7 +95,7 @@ fun Composer(
                 },
             )
 
-            ComposerIcon(Icons.Outlined.Mic, "语音输入", onVoice)
+            ComposerIcon(Icons.Outlined.Mic, "语音输入", onVoiceInput)
         }
 
         Spacer(Modifier.width(8.dp))
@@ -103,7 +109,7 @@ fun Composer(
                     when {
                         streaming -> onStop()
                         hasText -> onSend()
-                        else -> onVoice()
+                        else -> onOpenVoiceMode()
                     }
                 },
             contentAlignment = Alignment.Center,
@@ -112,12 +118,12 @@ fun Composer(
                 imageVector = when {
                     streaming -> Icons.Outlined.Stop
                     hasText -> Icons.Outlined.ArrowUpward
-                    else -> Icons.Outlined.Mic
+                    else -> Icons.Outlined.GraphicEq
                 },
                 contentDescription = when {
                     streaming -> "停止生成"
                     hasText -> "发送"
-                    else -> "语音"
+                    else -> "语音对话"
                 },
                 tint = Color.White,
                 modifier = Modifier.size(22.dp),

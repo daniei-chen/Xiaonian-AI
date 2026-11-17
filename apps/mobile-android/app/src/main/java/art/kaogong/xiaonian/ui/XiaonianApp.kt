@@ -16,6 +16,7 @@ import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
 import art.kaogong.xiaonian.ui.model.ChatMode
+import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
 import kotlinx.coroutines.launch
 
 @Composable
@@ -28,6 +29,16 @@ fun XiaonianApp(
 
     var mode by remember { mutableStateOf(ChatMode.Chat) }
     var input by remember { mutableStateOf("") }
+    /** 全屏语音对话模式 */
+    var voiceMode by remember { mutableStateOf(false) }
+
+    if (voiceMode) {
+        VoiceModeScreen(
+            onClose = { voiceMode = false },
+            onOpenDrawer = { scope.launch { drawerState.open() } },
+        )
+        return
+    }
 
     ModalNavigationDrawer(
         drawerState = drawerState,
@@ -65,7 +76,10 @@ fun XiaonianApp(
                 input = ""
             },
             onStop = { viewModel.stop() },
-            onVoice = {},
+            // 框内麦克风：语音输入（ASR 转文字进输入框）—— WP10
+            onVoiceInput = {},
+            // 框外紫色圆钮：进入全屏语音对话
+            onOpenVoiceMode = { voiceMode = true },
             onAttach = {},
             onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
         )

@@ -45,7 +45,8 @@ fun ChatScreen(
     onInputChange: (String) -> Unit,
     onSend: () -> Unit,
     onStop: () -> Unit,
-    onVoice: () -> Unit,
+    onVoiceInput: () -> Unit,
+    onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
     onToggleReasoning: (String) -> Unit,
 ) {
@@ -69,7 +70,8 @@ fun ChatScreen(
                 onSend = onSend,
                 onStop = onStop,
                 streaming = state.streaming,
-                onVoice = onVoice,
+                onVoiceInput = onVoiceInput,
+                onOpenVoiceMode = onOpenVoiceMode,
                 onAttach = onAttach,
                 modifier = Modifier
                     .navigationBarsPadding()
