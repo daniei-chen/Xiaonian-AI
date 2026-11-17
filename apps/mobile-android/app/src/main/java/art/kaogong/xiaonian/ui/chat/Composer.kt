@@ -101,7 +101,7 @@ fun Composer(
                 onValueChange = onValueChange,
                 modifier = Modifier
                     .weight(1f)
-                    .padding(vertical = 15.dp),
+                    .padding(vertical = 14.dp),
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = LocalPalette.current.ink),
                 cursorBrush = SolidColor(LocalAccent.current.accent),
                 maxLines = 5,

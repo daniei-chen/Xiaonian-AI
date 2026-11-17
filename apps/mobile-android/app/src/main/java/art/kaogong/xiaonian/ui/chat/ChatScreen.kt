@@ -189,7 +189,7 @@ private fun RecentConversationRow(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .clickable { onClick(item.id) }
-            .padding(vertical = 13.dp),
+            .padding(vertical = 14.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Box(

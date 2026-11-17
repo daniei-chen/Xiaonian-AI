@@ -23,8 +23,8 @@ val XiaonianTypography = Typography(
     bodyLarge = TextStyle(
         fontFamily = FontFamily.Default,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
-        lineHeight = 24.sp,
+        fontSize = 17.sp,
+        lineHeight = 25.sp,
     ),
     bodyMedium = TextStyle(
         fontFamily = FontFamily.Default,
