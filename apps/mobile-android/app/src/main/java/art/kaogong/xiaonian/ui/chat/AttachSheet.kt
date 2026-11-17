@@ -38,6 +38,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -70,7 +71,7 @@ fun AttachSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
-        containerColor = XiaonianColors.Canvas,
+        containerColor = LocalPalette.current.canvas,
         shape = RoundedCornerShape(topStart = 26.dp, topEnd = 26.dp),
         dragHandle = {
             Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
@@ -79,7 +80,7 @@ fun AttachSheet(
                         .padding(vertical = 10.dp)
                         .size(width = 36.dp, height = 4.dp)
                         .clip(CircleShape)
-                        .background(XiaonianColors.SurfaceRaised),
+                        .background(LocalPalette.current.surfaceRaised),
                 )
             }
         },
@@ -132,10 +133,10 @@ private fun EffortRow(current: String, onChange: (String) -> Unit) {
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = if (active) Color.White else XiaonianColors.InkSecondary,
+                color = if (active) Color.White else LocalPalette.current.inkSecondary,
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
+                    .background(if (active) LocalAccent.current.accent else LocalPalette.current.surfaceMuted)
                     .clickable { onChange(value) }
                     .padding(horizontal = 12.dp, vertical = 5.dp),
             )
@@ -143,7 +144,7 @@ private fun EffortRow(current: String, onChange: (String) -> Unit) {
         Text(
             text = "思考强度",
             style = MaterialTheme.typography.labelSmall,
-            color = XiaonianColors.InkTertiary,
+            color = LocalPalette.current.inkTertiary,
         )
     }
 }
@@ -167,13 +168,13 @@ private fun SheetItem(
             modifier = Modifier
                 .size(44.dp)
                 .clip(CircleShape)
-                .background(XiaonianColors.SurfaceMuted),
+                .background(LocalPalette.current.surfaceMuted),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                tint = if (enabled) XiaonianColors.Ink else XiaonianColors.InkTertiary,
+                tint = if (enabled) LocalPalette.current.ink else LocalPalette.current.inkTertiary,
                 modifier = Modifier.size(21.dp),
             )
         }
@@ -183,7 +184,7 @@ private fun SheetItem(
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (enabled) XiaonianColors.Ink else XiaonianColors.InkTertiary,
+            color = if (enabled) LocalPalette.current.ink else LocalPalette.current.inkTertiary,
             modifier = Modifier.weight(1f),
         )
 

@@ -39,6 +39,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -89,7 +90,7 @@ fun Composer(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(26.dp))
-                .background(XiaonianColors.SurfaceMuted)
+                .background(LocalPalette.current.surfaceMuted)
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
@@ -101,7 +102,7 @@ fun Composer(
                 modifier = Modifier
                     .weight(1f)
                     .padding(vertical = 15.dp),
-                textStyle = MaterialTheme.typography.bodyLarge.copy(color = XiaonianColors.Ink),
+                textStyle = MaterialTheme.typography.bodyLarge.copy(color = LocalPalette.current.ink),
                 cursorBrush = SolidColor(LocalAccent.current.accent),
                 maxLines = 5,
                 decorationBox = { inner ->
@@ -114,7 +115,7 @@ fun Composer(
                                     else -> "询问 小念"
                                 },
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = if (recording) Color(0xFFE11D48) else XiaonianColors.InkTertiary,
+                                color = if (recording) Color(0xFFE11D48) else LocalPalette.current.inkTertiary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -138,8 +139,8 @@ fun Composer(
                     contentDescription = if (recording) "停止录音" else "语音输入",
                     tint = when {
                         recording -> Color(0xFFE11D48)
-                        transcribing -> XiaonianColors.InkTertiary
-                        else -> XiaonianColors.Ink
+                        transcribing -> LocalPalette.current.inkTertiary
+                        else -> LocalPalette.current.ink
                     },
                     modifier = Modifier.size(22.dp),
                 )
@@ -200,21 +201,21 @@ private fun AttachmentChips(
             Row(
                 modifier = Modifier
                     .clip(RoundedCornerShape(10.dp))
-                    .background(XiaonianColors.SurfaceMuted)
+                    .background(LocalPalette.current.surfaceMuted)
                     .padding(start = 10.dp, end = 2.dp, top = 6.dp, bottom = 6.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Icon(
                     imageVector = if (item.isImage) Icons.Outlined.Image else Icons.Outlined.Description,
                     contentDescription = null,
-                    tint = XiaonianColors.InkSecondary,
+                    tint = LocalPalette.current.inkSecondary,
                     modifier = Modifier.size(15.dp),
                 )
                 Spacer(Modifier.width(6.dp))
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.labelSmall,
-                    color = XiaonianColors.Ink,
+                    color = LocalPalette.current.ink,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.widthIn(max = 150.dp),
@@ -229,7 +230,7 @@ private fun AttachmentChips(
                     Icon(
                         imageVector = Icons.Outlined.Close,
                         contentDescription = "移除附件",
-                        tint = XiaonianColors.InkSecondary,
+                        tint = LocalPalette.current.inkSecondary,
                         modifier = Modifier.size(14.dp),
                     )
                 }
@@ -240,7 +241,7 @@ private fun AttachmentChips(
             Text(
                 text = "上传中…",
                 style = MaterialTheme.typography.labelSmall,
-                color = XiaonianColors.InkTertiary,
+                color = LocalPalette.current.inkTertiary,
             )
         }
     }
@@ -262,7 +263,7 @@ private fun ComposerIcon(
         Icon(
             imageVector = icon,
             contentDescription = description,
-            tint = XiaonianColors.Ink,
+            tint = LocalPalette.current.ink,
             modifier = Modifier.size(22.dp),
         )
     }

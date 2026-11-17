@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -45,14 +46,14 @@ fun VoiceSettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = XiaonianColors.Canvas,
+        containerColor = LocalPalette.current.canvas,
         title = { Text("语音", style = MaterialTheme.typography.titleMedium) },
         text = {
             Column {
                 Text(
                     "朗读语速",
                     style = MaterialTheme.typography.labelMedium,
-                    color = XiaonianColors.InkTertiary,
+                    color = LocalPalette.current.inkTertiary,
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -67,7 +68,7 @@ fun VoiceSettingsDialog(
                 Text(
                     "音色",
                     style = MaterialTheme.typography.labelMedium,
-                    color = XiaonianColors.InkTertiary,
+                    color = LocalPalette.current.inkTertiary,
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -89,7 +90,7 @@ fun VoiceSettingsDialog(
                 Text(
                     text = "语速在本地生效；音色要上游支持这个 voice_id，填错会退回默认音色。",
                     style = MaterialTheme.typography.labelSmall,
-                    color = XiaonianColors.InkSecondary,
+                    color = LocalPalette.current.inkSecondary,
                 )
             }
         },
@@ -110,10 +111,10 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelMedium,
-        color = if (active) Color.White else XiaonianColors.InkSecondary,
+        color = if (active) Color.White else LocalPalette.current.inkSecondary,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
+            .background(if (active) LocalAccent.current.accent else LocalPalette.current.surfaceMuted)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )

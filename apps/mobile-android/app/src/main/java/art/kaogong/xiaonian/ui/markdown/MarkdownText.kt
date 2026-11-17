@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import art.kaogong.xiaonian.ui.theme.LocalFontScale
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -51,7 +52,7 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 fun MarkdownText(
     markdown: String,
     modifier: Modifier = Modifier,
-    color: Color = XiaonianColors.Ink,
+    color: Color = LocalPalette.current.ink,
     baseStyle: TextStyle = MaterialTheme.typography.bodyLarge,
 ) {
     val blocks = remember(markdown) { parseBlocks(markdown) }
@@ -87,7 +88,7 @@ fun MarkdownText(
                 is MdBlock.Bullet -> BulletRow(block, color, body)
                 is MdBlock.Ordered -> OrderedRow(block, color, body)
                 is MdBlock.Rule -> HorizontalDivider(
-                    color = XiaonianColors.Divider,
+                    color = LocalPalette.current.divider,
                     modifier = Modifier.padding(vertical = 4.dp),
                 )
                 is MdBlock.Table -> TableBlock(block)
@@ -316,7 +317,7 @@ private fun CodeBlock(language: String?, code: String) {
             Text(
                 text = language,
                 style = MaterialTheme.typography.labelSmall,
-                color = XiaonianColors.InkTertiary,
+                color = LocalPalette.current.inkTertiary,
             )
             Spacer(Modifier.height(4.dp))
         }
@@ -327,7 +328,7 @@ private fun CodeBlock(language: String?, code: String) {
                 fontSize = 13.5.sp,
                 lineHeight = 20.sp,
             ),
-            color = XiaonianColors.Ink,
+            color = LocalPalette.current.ink,
             modifier = Modifier.horizontalScroll(scroll),
         )
     }
@@ -343,40 +344,40 @@ private fun TableBlock(block: MdBlock.Table) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(shape)
-            .border(1.dp, XiaonianColors.Divider, shape),
+            .border(1.dp, LocalPalette.current.divider, shape),
     ) {
         Row(modifier = Modifier.background(Color(0xFFF7F7F8))) {
             block.header.forEach { cell ->
                 Text(
                     // 单元格里同样会有 **粗体** / `代码`，必须走行内解析
-                    text = renderInline(cell, XiaonianColors.Ink),
+                    text = renderInline(cell, LocalPalette.current.ink),
                     modifier = Modifier
                         .weight(1f)
                         .padding(horizontal = 8.dp, vertical = 7.dp),
                     style = MaterialTheme.typography.labelLarge,
-                    color = XiaonianColors.Ink,
+                    color = LocalPalette.current.ink,
                     fontWeight = FontWeight.Bold,
                 )
             }
         }
 
-        HorizontalDivider(color = XiaonianColors.Divider)
+        HorizontalDivider(color = LocalPalette.current.divider)
 
         block.rows.forEachIndexed { index, row ->
             Row {
                 for (column in 0 until columns) {
                     Text(
-                        text = renderInline(row.getOrNull(column).orEmpty(), XiaonianColors.Ink),
+                        text = renderInline(row.getOrNull(column).orEmpty(), LocalPalette.current.ink),
                         modifier = Modifier
                             .weight(1f)
                             .padding(horizontal = 8.dp, vertical = 7.dp),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = XiaonianColors.Ink,
+                        color = LocalPalette.current.ink,
                     )
                 }
             }
             if (index < block.rows.lastIndex) {
-                HorizontalDivider(color = XiaonianColors.Divider.copy(alpha = 0.4f))
+                HorizontalDivider(color = LocalPalette.current.divider.copy(alpha = 0.4f))
             }
         }
     }
@@ -394,7 +395,7 @@ private fun BulletRow(block: MdBlock.Bullet, color: Color, baseStyle: TextStyle)
                 .padding(top = 8.dp)
                 .size(4.dp)
                 .clip(CircleShape)
-                .background(XiaonianColors.InkSecondary),
+                .background(LocalPalette.current.inkSecondary),
         )
         Spacer(Modifier.width(9.dp))
         Text(text = renderInline(block.text, color), style = baseStyle, color = color)
@@ -411,7 +412,7 @@ private fun OrderedRow(block: MdBlock.Ordered, color: Color, baseStyle: TextStyl
         Text(
             text = "${block.number}.",
             style = baseStyle,
-            color = XiaonianColors.InkSecondary,
+            color = LocalPalette.current.inkSecondary,
         )
         Spacer(Modifier.width(8.dp))
         Text(text = renderInline(block.text, color), style = baseStyle, color = color)

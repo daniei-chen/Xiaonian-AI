@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.Settings
 import art.kaogong.xiaonian.ui.theme.AccentTheme
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /** 设置页需要读写的全部状态 */
@@ -63,6 +64,8 @@ fun SettingsDialog(
     onTest: (provider: String, apiKey: String, (Boolean, String) -> Unit) -> Unit,
     onClearAll: () -> Unit,
     onAccentChange: (AccentTheme) -> Unit,
+    darkMode: String = "system",
+    onDarkModeChange: (String) -> Unit = {},
 ) {
     var values by remember { mutableStateOf(initial) }
     var testing by remember { mutableStateOf(false) }
@@ -71,10 +74,18 @@ fun SettingsDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = XiaonianColors.Canvas,
+        containerColor = LocalPalette.current.canvas,
         title = { Text("设置", style = MaterialTheme.typography.titleMedium) },
         text = {
             Column(Modifier.verticalScroll(rememberScrollState())) {
+                SectionLabel("外观")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("light" to "浅色", "dark" to "深色", "system" to "跟随系统").forEach { (id, label) ->
+                        Chip(label, darkMode == id) { onDarkModeChange(id) }
+                    }
+                }
+
+                Spacer(Modifier.height(12.dp))
                 SectionLabel("主题色")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     AccentTheme.entries.forEach { theme ->
@@ -82,10 +93,10 @@ fun SettingsDialog(
                         Text(
                             text = theme.label,
                             style = MaterialTheme.typography.labelMedium,
-                            color = if (active) Color.White else XiaonianColors.InkSecondary,
+                            color = if (active) Color.White else LocalPalette.current.inkSecondary,
                             modifier = Modifier
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (active) theme.accent else XiaonianColors.SurfaceMuted)
+                                .background(if (active) theme.accent else LocalPalette.current.surfaceMuted)
                                 .clickable { onAccentChange(theme) }
                                 .padding(horizontal = 14.dp, vertical = 7.dp),
                         )
@@ -93,7 +104,7 @@ fun SettingsDialog(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = XiaonianColors.Divider)
+                HorizontalDivider(color = LocalPalette.current.divider)
                 Spacer(Modifier.height(12.dp))
 
                 SectionLabel("模型")
@@ -146,7 +157,7 @@ fun SettingsDialog(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = XiaonianColors.Divider)
+                HorizontalDivider(color = LocalPalette.current.divider)
                 Spacer(Modifier.height(12.dp))
 
                 SectionLabel("默认行为")
@@ -159,7 +170,7 @@ fun SettingsDialog(
                         Text(
                             "开启后每次新对话直接带思考，不用再手动点",
                             style = MaterialTheme.typography.labelSmall,
-                            color = XiaonianColors.InkSecondary,
+                            color = LocalPalette.current.inkSecondary,
                         )
                     }
                     Switch(
@@ -192,14 +203,14 @@ fun SettingsDialog(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = XiaonianColors.Divider)
+                HorizontalDivider(color = LocalPalette.current.divider)
                 Spacer(Modifier.height(12.dp))
 
                 SectionLabel("数据")
                 Text(
                     text = "会话只存在这台手机上（SQLite），没有云端副本。",
                     style = MaterialTheme.typography.labelSmall,
-                    color = XiaonianColors.InkSecondary,
+                    color = LocalPalette.current.inkSecondary,
                 )
                 Spacer(Modifier.height(8.dp))
                 if (!confirmingClear) {
@@ -222,7 +233,7 @@ fun SettingsDialog(
                 }
 
                 Spacer(Modifier.height(16.dp))
-                HorizontalDivider(color = XiaonianColors.Divider)
+                HorizontalDivider(color = LocalPalette.current.divider)
                 Spacer(Modifier.height(12.dp))
 
                 SectionLabel("关于")
@@ -231,7 +242,7 @@ fun SettingsDialog(
                         "聊天走 ${if (values.provider == Settings.PROVIDER_DEEPSEEK) "api.deepseek.com" else "zhihui.kaogong.art"}\n" +
                         "搜索 / OCR / 语音固定走 DeepSeek 官方接口",
                     style = MaterialTheme.typography.labelSmall,
-                    color = XiaonianColors.InkSecondary,
+                    color = LocalPalette.current.inkSecondary,
                 )
             }
         },
@@ -265,7 +276,7 @@ private fun SectionLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
-        color = XiaonianColors.InkTertiary,
+        color = LocalPalette.current.inkTertiary,
         modifier = Modifier.padding(bottom = 8.dp),
     )
 }
@@ -275,10 +286,10 @@ private fun Chip(label: String, active: Boolean, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelMedium,
-        color = if (active) Color.White else XiaonianColors.InkSecondary,
+        color = if (active) Color.White else LocalPalette.current.inkSecondary,
         modifier = Modifier
             .clip(RoundedCornerShape(12.dp))
-            .background(if (active) LocalAccent.current.accent else XiaonianColors.SurfaceMuted)
+            .background(if (active) LocalAccent.current.accent else LocalPalette.current.surfaceMuted)
             .clickable(onClick = onClick)
             .padding(horizontal = 12.dp, vertical = 7.dp),
     )

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -28,8 +29,8 @@ fun CircleIconButton(
     modifier: Modifier = Modifier,
     size: Dp = 40.dp,
     iconSize: Dp = 20.dp,
-    background: Color = XiaonianColors.SurfaceMuted,
-    tint: Color = XiaonianColors.Ink,
+    background: Color = LocalPalette.current.surfaceMuted,
+    tint: Color = LocalPalette.current.ink,
 ) {
     Box(
         modifier

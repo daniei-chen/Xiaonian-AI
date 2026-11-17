@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 @Composable
@@ -58,7 +59,7 @@ fun ChatScreen(
     onDismissError: () -> Unit = {},
 ) {
     Scaffold(
-        containerColor = XiaonianColors.Canvas,
+        containerColor = LocalPalette.current.canvas,
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             ChatTopBar(
@@ -110,13 +111,13 @@ fun ChatScreen(
                         Text(
                             text = "还没有对话",
                             style = MaterialTheme.typography.titleMedium,
-                            color = XiaonianColors.Ink,
+                            color = LocalPalette.current.ink,
                         )
                         Spacer(Modifier.height(6.dp))
                         Text(
                             text = "直接问点什么，或用 ＋ 发图片、文件、链接",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = XiaonianColors.InkSecondary,
+                            color = LocalPalette.current.inkSecondary,
                         )
                     }
                 }
@@ -152,7 +153,7 @@ fun ChatScreen(
 private fun ErrorLine(
     message: String,
     onDismiss: () -> Unit,
-    color: Color = XiaonianColors.InkSecondary,
+    color: Color = LocalPalette.current.inkSecondary,
 ) {
     Row(
         modifier = Modifier
@@ -195,13 +196,13 @@ private fun RecentConversationRow(
             modifier = Modifier
                 .size(24.dp)
                 .clip(RoundedCornerShape(7.dp))
-                .background(XiaonianColors.SurfaceMuted),
+                .background(LocalPalette.current.surfaceMuted),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.ChatBubbleOutline,
                 contentDescription = null,
-                tint = XiaonianColors.InkSecondary,
+                tint = LocalPalette.current.inkSecondary,
                 modifier = Modifier.size(14.dp),
             )
         }
@@ -211,7 +212,7 @@ private fun RecentConversationRow(
         Text(
             text = item.title ?: "新对话",
             style = MaterialTheme.typography.bodyLarge,
-            color = XiaonianColors.Ink,
+            color = LocalPalette.current.ink,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
         )

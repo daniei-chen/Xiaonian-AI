@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
 import art.kaogong.xiaonian.ui.components.CircleIconButton
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -74,7 +75,7 @@ fun XiaonianDrawer(
 
     ModalDrawerSheet(
         modifier = Modifier.width(320.dp),
-        drawerContainerColor = XiaonianColors.Canvas,
+        drawerContainerColor = LocalPalette.current.canvas,
         drawerShape = RoundedCornerShape(topEnd = 26.dp, bottomEnd = 26.dp),
     ) {
         Column(
@@ -91,7 +92,7 @@ fun XiaonianDrawer(
                 Text(
                     text = "小念",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = XiaonianColors.Ink,
+                    color = LocalPalette.current.ink,
                 )
                 Spacer(Modifier.weight(1f))
                 CircleIconButton(
@@ -113,7 +114,7 @@ fun XiaonianDrawer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
-                        .background(XiaonianColors.SurfaceMuted),
+                        .background(LocalPalette.current.surfaceMuted),
                     placeholder = { Text("搜索会话内容", style = MaterialTheme.typography.bodyMedium) },
                     singleLine = true,
                     colors = TextFieldDefaults.colors(
@@ -130,7 +131,7 @@ fun XiaonianDrawer(
             DrawerMenuRow(Icons.Outlined.Settings, "设置", onClick = onOpenSettings)
 
             Spacer(Modifier.height(14.dp))
-            HorizontalDivider(color = XiaonianColors.Divider)
+            HorizontalDivider(color = LocalPalette.current.divider)
             Spacer(Modifier.height(4.dp))
 
             // 放在会话列表之前：列表很长时贴底的按钮会被挤出可视区
@@ -138,13 +139,13 @@ fun XiaonianDrawer(
             DrawerAction("导入历史", onImport)
 
             Spacer(Modifier.height(4.dp))
-            HorizontalDivider(color = XiaonianColors.Divider)
+            HorizontalDivider(color = LocalPalette.current.divider)
             Spacer(Modifier.height(10.dp))
             if (shown.isEmpty() && query.isNotBlank()) {
                 Text(
                     text = "没有匹配的会话",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = XiaonianColors.InkTertiary,
+                    color = LocalPalette.current.inkTertiary,
                     modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp),
                 )
             }
@@ -191,13 +192,13 @@ fun XiaonianDrawer(
                     modifier = Modifier
                         .size(40.dp)
                         .clip(CircleShape)
-                        .background(XiaonianColors.SurfaceMuted),
+                        .background(LocalPalette.current.surfaceMuted),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(
                         text = "念",
                         style = MaterialTheme.typography.labelLarge,
-                        color = XiaonianColors.InkSecondary,
+                        color = LocalPalette.current.inkSecondary,
                     )
                 }
             }
@@ -213,7 +214,7 @@ private fun DrawerAction(label: String, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.bodyMedium,
-        color = XiaonianColors.InkSecondary,
+        color = LocalPalette.current.inkSecondary,
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
@@ -239,14 +240,14 @@ private fun DrawerMenuRow(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = XiaonianColors.Ink,
+            tint = LocalPalette.current.ink,
             modifier = Modifier.size(22.dp),
         )
         Spacer(Modifier.width(14.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = XiaonianColors.Ink,
+            color = LocalPalette.current.ink,
         )
     }
 }
@@ -260,7 +261,7 @@ private fun DrawerConversationRow(
     Text(
         text = item.title ?: "新对话",
         style = MaterialTheme.typography.bodyLarge,
-        color = if (selected) XiaonianColors.Ink else XiaonianColors.InkSecondary,
+        color = if (selected) LocalPalette.current.ink else LocalPalette.current.inkSecondary,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier

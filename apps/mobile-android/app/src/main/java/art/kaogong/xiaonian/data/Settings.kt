@@ -25,6 +25,7 @@ object Settings {
     private const val KEY_TTS_RATE = "tts_rate"
     private const val KEY_TTS_VOICE = "tts_voice"
     private const val KEY_ACCENT = "accent_theme"
+    private const val KEY_DARK = "dark_mode"
 
     /** zhihui：便宜、快，OpenAI 协议；deepseek：官方，支持文件引用与引用编号 */
     const val PROVIDER_ZHIHUI = "zhihui"
@@ -129,5 +130,14 @@ object Settings {
 
     fun setAccentTheme(context: Context, id: String) {
         prefs(context).edit().putString(KEY_ACCENT, id).apply()
+    }
+
+    /** 明暗：light / dark / system */
+    fun darkMode(context: Context): String =
+        prefs(context).getString(KEY_DARK, null)?.takeIf { it in setOf("light", "dark", "system") }
+            ?: "system"
+
+    fun setDarkMode(context: Context, value: String) {
+        prefs(context).edit().putString(KEY_DARK, value).apply()
     }
 }

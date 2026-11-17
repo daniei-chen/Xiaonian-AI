@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.components.CircleIconButton
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -49,7 +50,7 @@ fun ChatTopBar(
         Text(
             text = modelLabel,
             style = MaterialTheme.typography.labelLarge,
-            color = XiaonianColors.InkSecondary,
+            color = LocalPalette.current.inkSecondary,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.R
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -88,7 +89,7 @@ fun VoiceModeScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(XiaonianColors.Canvas),
+            .background(LocalPalette.current.canvas),
     ) {
         Row(
             modifier = Modifier
@@ -101,7 +102,7 @@ fun VoiceModeScreen(
                 Icon(
                     imageVector = Icons.Outlined.Menu,
                     contentDescription = "菜单",
-                    tint = XiaonianColors.Ink,
+                    tint = LocalPalette.current.ink,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -113,7 +114,7 @@ fun VoiceModeScreen(
                 Icon(
                     imageVector = Icons.Outlined.Tune,
                     contentDescription = "语速与音色",
-                    tint = XiaonianColors.Ink,
+                    tint = LocalPalette.current.ink,
                     modifier = Modifier.size(20.dp),
                 )
             }
@@ -138,7 +139,7 @@ fun VoiceModeScreen(
         Text(
             text = status,
             style = MaterialTheme.typography.bodyMedium,
-            color = XiaonianColors.InkTertiary,
+            color = LocalPalette.current.inkTertiary,
             modifier = Modifier
                 .align(Alignment.Center)
                 .offset(y = 200.dp),
@@ -157,7 +158,7 @@ fun VoiceModeScreen(
                     .weight(1f)
                     .height(52.dp)
                     .clip(RoundedCornerShape(26.dp))
-                    .background(XiaonianColors.SurfaceMuted)
+                    .background(LocalPalette.current.surfaceMuted)
                     .padding(start = 6.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -175,14 +176,14 @@ fun VoiceModeScreen(
                     Icon(
                         imageVector = Icons.Outlined.Add,
                         contentDescription = "添加",
-                        tint = XiaonianColors.Ink,
+                        tint = LocalPalette.current.ink,
                         modifier = Modifier.size(22.dp),
                     )
                 }
                 Text(
                     text = "询问 小念",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = XiaonianColors.InkTertiary,
+                    color = LocalPalette.current.inkTertiary,
                 )
                 Spacer(Modifier.weight(1f))
                 PurpleRing()
@@ -192,20 +193,20 @@ fun VoiceModeScreen(
 
             PressableCircle(
                 size = 52.dp,
-                background = if (speaking) LocalAccent.current.accent else XiaonianColors.SurfaceMuted,
+                background = if (speaking) LocalAccent.current.accent else LocalPalette.current.surfaceMuted,
                 onClick = { if (speaking) onStopSpeaking() },
             ) {
                 Icon(
                     imageVector = if (speaking) Icons.Outlined.Stop else Icons.Outlined.MicOff,
                     contentDescription = if (speaking) "停止朗读" else "静音",
-                    tint = if (speaking) Color.White else XiaonianColors.Ink,
+                    tint = if (speaking) Color.White else LocalPalette.current.ink,
                     modifier = Modifier.size(24.dp),
                 )
             }
 
             Spacer(Modifier.width(10.dp))
 
-            PressableCircle(size = 52.dp, background = XiaonianColors.Ink, onClick = onClose) {
+            PressableCircle(size = 52.dp, background = LocalPalette.current.ink, onClick = onClose) {
                 Icon(
                     imageVector = Icons.Outlined.Close,
                     contentDescription = "关闭语音对话",
@@ -350,7 +351,7 @@ private fun PressableCircle(
         label = "pressScale",
     )
 
-    val isDark = background == XiaonianColors.Ink
+    val isDark = background == LocalPalette.current.ink
 
     Box(
         modifier = Modifier

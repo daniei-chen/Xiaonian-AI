@@ -37,6 +37,7 @@ fun XiaonianApp(
     viewModel: ChatViewModel = viewModel(),
     /** 主题色在 MainActivity 层持有，这里只负责把选择往上传 */
     onAccentChange: (art.kaogong.xiaonian.ui.theme.AccentTheme) -> Unit = {},
+    onDarkModeChange: (String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val transcript by viewModel.transcript.collectAsStateWithLifecycle()
@@ -49,6 +50,7 @@ fun XiaonianApp(
     var showSettings by remember { mutableStateOf(false) }
     var provider by remember { mutableStateOf(Settings.provider(context)) }
     var settingsModel by remember { mutableStateOf(Settings.model(context)) }
+    var darkMode by remember { mutableStateOf(Settings.darkMode(context)) }
     var fontScale by remember { mutableStateOf(Settings.fontScale(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
@@ -351,6 +353,8 @@ fun XiaonianApp(
             },
             onClearAll = { viewModel.clearAll() },
             onAccentChange = onAccentChange,
+            darkMode = darkMode,
+            onDarkModeChange = onDarkModeChange,
         )
     }
 

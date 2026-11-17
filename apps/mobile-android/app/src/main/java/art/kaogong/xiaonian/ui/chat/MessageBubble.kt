@@ -43,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.markdown.MarkdownText
 import art.kaogong.xiaonian.ui.theme.LocalAccent
+import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 /**
@@ -147,13 +148,13 @@ private fun UserBubble(message: UiMessage) {
             modifier = Modifier
                 .widthIn(max = 296.dp)
                 .clip(RoundedCornerShape(22.dp))
-                .background(XiaonianColors.SurfaceMuted)
+                .background(LocalPalette.current.surfaceMuted)
                 .padding(horizontal = 16.dp, vertical = 11.dp),
         ) {
             Text(
                 text = message.text,
                 style = MaterialTheme.typography.bodyLarge,
-                color = XiaonianColors.Ink,
+                color = LocalPalette.current.ink,
             )
         }
     }
@@ -183,7 +184,7 @@ private fun AssistantMessage(
                 Text(
                     text = message.reasoning,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = XiaonianColors.InkSecondary,
+                    color = LocalPalette.current.inkSecondary,
                     modifier = Modifier
                         .fillMaxWidth()
                         .clip(RoundedCornerShape(12.dp))
@@ -226,7 +227,7 @@ private fun MessageAction(label: String, onClick: () -> Unit) {
     Text(
         text = label,
         style = MaterialTheme.typography.labelSmall,
-        color = XiaonianColors.InkSecondary,
+        color = LocalPalette.current.inkSecondary,
         modifier = Modifier
             .clip(RoundedCornerShape(8.dp))
             .clickable(onClick = onClick)
@@ -267,14 +268,14 @@ private fun CitationList(citations: List<UiCitation>) {
                     Text(
                         text = citation.title ?: citation.host,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = XiaonianColors.Ink,
+                        color = LocalPalette.current.ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
                         text = citation.host,
                         style = MaterialTheme.typography.labelSmall,
-                        color = XiaonianColors.InkSecondary,
+                        color = LocalPalette.current.inkSecondary,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -302,12 +303,12 @@ private fun ThinkingHeader(message: UiMessage, onToggleReasoning: (String) -> Un
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = XiaonianColors.InkSecondary,
+            color = LocalPalette.current.inkSecondary,
         )
         Icon(
             imageVector = if (message.reasoningExpanded) Icons.Outlined.ExpandLess else Icons.Outlined.ExpandMore,
             contentDescription = null,
-            tint = XiaonianColors.InkSecondary,
+            tint = LocalPalette.current.inkSecondary,
             modifier = Modifier.size(16.dp),
         )
     }
@@ -332,7 +333,7 @@ private fun TypingDots() {
                     .padding(horizontal = 2.dp)
                     .size(6.dp)
                     .clip(CircleShape)
-                    .background(XiaonianColors.InkSecondary.copy(alpha = alpha)),
+                    .background(LocalPalette.current.inkSecondary.copy(alpha = alpha)),
             )
         }
     }
