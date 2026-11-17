@@ -54,6 +54,7 @@ fun MessageList(
     onToggleReasoning: (String) -> Unit,
     onRegenerate: (String) -> Unit,
     onContinue: () -> Unit,
+    onSpeak: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
@@ -87,6 +88,7 @@ fun MessageList(
                     onToggleReasoning = onToggleReasoning,
                     onRegenerate = onRegenerate,
                     onContinue = onContinue,
+                    onSpeak = onSpeak,
                     isLast = index == messages.lastIndex,
                 )
             }
@@ -124,6 +126,7 @@ private fun AssistantMessage(
     onToggleReasoning: (String) -> Unit,
     onRegenerate: (String) -> Unit,
     onContinue: () -> Unit,
+    onSpeak: (String) -> Unit,
     isLast: Boolean,
 ) {
     Column(
@@ -171,6 +174,7 @@ private fun AssistantMessage(
             Spacer(Modifier.height(6.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 MessageAction("重新生成") { onRegenerate(message.id) }
+                MessageAction("朗读") { onSpeak(message.text) }
                 if (isLast) MessageAction("继续") { onContinue() }
             }
         }

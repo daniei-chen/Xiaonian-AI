@@ -79,6 +79,17 @@ fun XiaonianApp(
         }
     }
 
+    /** 图片转文字：选完直接 OCR，结果填进输入框 */
+    val ocrPicker = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickVisualMedia(),
+    ) { uri ->
+        if (uri != null) {
+            readUri(context, uri)?.let { (bytes, name, mime) ->
+                viewModel.runOcr(bytes, name, mime)
+            }
+        }
+    }
+
     /** 导出：先拿字节，再弹系统保存框 */
     var pendingExport by remember { mutableStateOf<ByteArray?>(null) }
 
@@ -228,6 +239,7 @@ fun XiaonianApp(
             onToggleReasoning = { id -> viewModel.toggleReasoning(id) },
             onRegenerate = { id -> viewModel.regenerate(id) },
             onContinue = { viewModel.continueGeneration() },
+            onSpeak = { text -> viewModel.speakMessage(text) },
             onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
         )
     }
@@ -235,9 +247,13 @@ fun XiaonianApp(
     if (showAttach) {
         AttachSheet(
             webSearch = state.webSearch,
+            deepSearch = state.deepSearch,
             thinking = state.thinking,
+            effort = state.effort,
             onToggleWebSearch = { viewModel.toggleWebSearch() },
+            onToggleDeepSearch = { viewModel.toggleDeepSearch() },
             onToggleThinking = { viewModel.toggleThinking() },
+            onEffortChange = { viewModel.setEffort(it) },
             onPickImage = {
                 showAttach = false
                 imagePicker.launch(
@@ -247,6 +263,29 @@ fun XiaonianApp(
             onPickFile = {
                 showAttach = false
                 filePicker.launch(arrayOf("*/*"))
+            },
+            onPickOcr = {
+                showAttach = false
+                ocrPicker.launch(
+                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly),
+                )
+            },
+            onReadLink = {
+                showAttach = false
+                // 读剪贴板里的链接：用户通常是先复制再来
+                val clip = context.getSystemService(android.content.ClipboardManager::class.java)
+                val text = clip?.primaryClip
+                    ?.takeIf { it.itemCount > 0 }
+                    ?.getItemAt(0)
+                    ?.text
+                    ?.toString()
+                    ?.trim()
+
+                if (text != null && (text.startsWith("http://") || text.startsWith("https://"))) {
+                    viewModel.fetchLink(text)
+                } else {
+                    viewModel.reportError("剪贴板里没有链接，先复制一个网址")
+                }
             },
             onDismiss = { showAttach = false },
         )

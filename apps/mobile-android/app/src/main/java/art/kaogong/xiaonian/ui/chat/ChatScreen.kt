@@ -52,6 +52,7 @@ fun ChatScreen(
     onToggleReasoning: (String) -> Unit,
     onRegenerate: (String) -> Unit,
     onContinue: () -> Unit,
+    onSpeak: (String) -> Unit,
     onRemoveAttachment: (String) -> Unit = {},
 ) {
     Scaffold(
@@ -116,6 +117,7 @@ fun ChatScreen(
                     onToggleReasoning = onToggleReasoning,
                     onRegenerate = onRegenerate,
                     onContinue = onContinue,
+                    onSpeak = onSpeak,
                     modifier = Modifier.weight(1f),
                 )
 

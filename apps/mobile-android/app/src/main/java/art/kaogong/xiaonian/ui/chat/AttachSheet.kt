@@ -2,6 +2,7 @@ package art.kaogong.xiaonian.ui.chat
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,9 +18,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Link
 import androidx.compose.material.icons.outlined.PhotoCamera
 import androidx.compose.material.icons.outlined.Psychology
 import androidx.compose.material.icons.outlined.Public
+import androidx.compose.material.icons.outlined.TextSnippet
+import androidx.compose.material.icons.outlined.TravelExplore
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
@@ -45,11 +50,17 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 @Composable
 fun AttachSheet(
     webSearch: Boolean,
+    deepSearch: Boolean,
     thinking: Boolean,
+    effort: String,
     onToggleWebSearch: () -> Unit,
+    onToggleDeepSearch: () -> Unit,
     onToggleThinking: () -> Unit,
+    onEffortChange: (String) -> Unit,
     onPickImage: () -> Unit,
     onPickFile: () -> Unit,
+    onPickOcr: () -> Unit,
+    onReadLink: () -> Unit,
     onDismiss: () -> Unit,
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -75,6 +86,8 @@ fun AttachSheet(
             SheetItem(Icons.Outlined.PhotoCamera, "拍照", enabled = false)
             SheetItem(Icons.Outlined.Image, "照片", onClick = onPickImage)
             SheetItem(Icons.Outlined.AttachFile, "文件", onClick = onPickFile)
+            SheetItem(Icons.Outlined.TextSnippet, "图片转文字", onClick = onPickOcr)
+            SheetItem(Icons.Outlined.Link, "读链接", onClick = onReadLink)
             SheetItem(
                 icon = Icons.Outlined.Public,
                 label = "联网搜索",
@@ -82,12 +95,54 @@ fun AttachSheet(
                 onClick = onToggleWebSearch,
             )
             SheetItem(
+                icon = Icons.Outlined.TravelExplore,
+                label = "深度搜索",
+                selected = deepSearch,
+                onClick = onToggleDeepSearch,
+            )
+            SheetItem(
                 icon = Icons.Outlined.Psychology,
                 label = "深入思考",
                 selected = thinking,
                 onClick = onToggleThinking,
             )
+
+            // 强度只有开了思考才有意义，否则整行不显示
+            if (thinking) {
+                EffortRow(current = effort, onChange = onEffortChange)
+            }
         }
+    }
+}
+
+/** 思考强度三档：高（默认，快）/ 最高（更深的推理） */
+@Composable
+private fun EffortRow(current: String, onChange: (String) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 79.dp, end = 22.dp, top = 2.dp, bottom = 4.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        listOf("high" to "高", "max" to "最高").forEach { (value, label) ->
+            val active = current == value
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (active) Color.White else XiaonianColors.InkSecondary,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(if (active) XiaonianColors.Accent else XiaonianColors.SurfaceMuted)
+                    .clickable { onChange(value) }
+                    .padding(horizontal = 12.dp, vertical = 5.dp),
+            )
+        }
+        Text(
+            text = "思考强度",
+            style = MaterialTheme.typography.labelSmall,
+            color = XiaonianColors.InkTertiary,
+        )
     }
 }
 

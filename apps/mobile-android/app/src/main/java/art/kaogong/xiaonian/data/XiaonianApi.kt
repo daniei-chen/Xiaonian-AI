@@ -187,6 +187,39 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
             }
         }
 
+    /** 读链接：返回正文 markdown */
+    suspend fun fetchPage(url: String): String = withContext(Dispatchers.IO) {
+        val payload = buildJsonObject { put("url", url) }.toString()
+        val request = Request.Builder()
+            .url(url("/api/v1/fetch"))
+            .post(payload.toRequestBody(jsonMedia))
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) throw IOException("fetch failed: ${response.code}")
+            json.parseToJsonElement(body).jsonObject["markdown"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        }
+    }
+
+    /** 图片转文字：返回整段合并文本 */
+    suspend fun ocr(bytes: ByteArray, filename: String, mime: String, layout: Boolean = false): String =
+        withContext(Dispatchers.IO) {
+            val request = Request.Builder()
+                .url(url("/api/v1/ocr"))
+                .post(bytes.toRequestBody("application/octet-stream".toMediaType()))
+                .header("X-Mime", mime)
+                .header("X-Filename", java.net.URLEncoder.encode(filename, "UTF-8"))
+                .apply { if (layout) header("X-Purpose", "layout") }
+                .build()
+
+            client.newCall(request).execute().use { response ->
+                val body = response.body?.string().orEmpty()
+                if (!response.isSuccessful) throw IOException("ocr failed: ${response.code}")
+                json.parseToJsonElement(body).jsonObject["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+            }
+        }
+
     /** 语音合成：返回音频字节（wav），直接交给播放器 */
     suspend fun synthesize(text: String, voiceId: String = "stella"): ByteArray =
         withContext(Dispatchers.IO) {
@@ -234,6 +267,8 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
         text: String,
         thinking: Boolean,
         webSearch: Boolean = false,
+        deepSearch: Boolean = false,
+        effort: String = "high",
         files: List<FileRef> = emptyList(),
         replayFromMessageId: String? = null,
         continueGeneration: Boolean = false,
@@ -241,7 +276,9 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
         val payload = buildJsonObject {
             put("text", text)
             put("thinking", thinking)
+            put("effort", effort)
             put("webSearch", webSearch)
+            put("deepSearch", deepSearch)
             put("maxTokens", 2048)
             if (replayFromMessageId != null) put("replayFromMessageId", replayFromMessageId)
             if (continueGeneration) put("continueGeneration", true)

@@ -59,10 +59,14 @@ data class ChatUiState(
     val streaming: Boolean = false,
     val recording: Boolean = false,
     val transcribing: Boolean = false,
-    /** 联网搜索开关 */
+    /** 联网搜索开关（透传上游 server-tools） */
     val webSearch: Boolean = false,
+    /** 深度搜索开关（能力层自建 loop） */
+    val deepSearch: Boolean = false,
     /** 深入思考开关 */
     val thinking: Boolean = false,
+    /** 思考强度：high 快，max 深 */
+    val effort: String = "high",
     val error: String? = null,
 )
 
@@ -108,11 +112,61 @@ class ChatViewModel(
     }
 
     fun toggleWebSearch() {
-        _state.update { it.copy(webSearch = !it.webSearch) }
+        _state.update { it.copy(webSearch = !it.webSearch, deepSearch = false) }
+    }
+
+    fun toggleDeepSearch() {
+        _state.update { it.copy(deepSearch = !it.deepSearch, webSearch = false) }
     }
 
     fun toggleThinking() {
         _state.update { it.copy(thinking = !it.thinking) }
+    }
+
+    fun setEffort(value: String) {
+        _state.update { it.copy(effort = value) }
+    }
+
+    fun reportError(message: String) {
+        _state.update { it.copy(error = message) }
+    }
+
+    /** 读链接：正文走 transcript 通道填进输入框，用户可以先看一眼再发 */
+    fun fetchLink(url: String) {
+        if (_state.value.uploading) return
+        _state.update { it.copy(uploading = true, error = null) }
+        viewModelScope.launch {
+            runCatching { api.fetchPage(url) }
+                .onSuccess { text ->
+                    if (text.isBlank()) {
+                        _state.update { it.copy(error = "这个链接没有取到正文") }
+                    } else {
+                        // 太长的正文塞进输入框没法看，截断并注明
+                        val clipped = if (text.length > 6000) text.take(6000) + "\n\n…（正文过长已截断）" else text
+                        _transcript.value = "$url\n\n$clipped"
+                    }
+                }
+                .onFailure { e -> _state.update { it.copy(error = "读取失败：${e.message}") } }
+            _state.update { it.copy(uploading = false) }
+        }
+    }
+
+    /** 图片转文字：结果走 transcript 通道，直接填进输入框 */
+    fun runOcr(bytes: ByteArray, name: String, mime: String) {
+        if (_state.value.uploading) return
+        _state.update { it.copy(uploading = true, error = null) }
+        viewModelScope.launch {
+            runCatching { api.ocr(bytes, name, mime) }
+                .onSuccess { text ->
+                    if (text.isBlank()) {
+                        _state.update { it.copy(error = "这张图里没识别到文字") }
+                    } else {
+                        _transcript.value = text
+                    }
+                }
+                .onFailure { e -> _state.update { it.copy(error = "OCR 失败：${e.message}") } }
+            _state.update { it.copy(uploading = false) }
+        }
     }
 
     // ------------------------------------------------------------ 附件
@@ -209,10 +263,12 @@ class ChatViewModel(
         }
     }
 
-    /** 把回答合成语音推给 UI 播放 */
-    private fun speak(text: String) {
+    /** 把文本合成语音推给 UI 播放；消息上的「朗读」也走这里 */
+    fun speakMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
         viewModelScope.launch {
-            val bytes = runCatching { api.synthesize(text.take(600)) }.getOrNull()
+            val bytes = runCatching { api.synthesize(trimmed.take(600)) }.getOrNull()
             if (bytes != null && bytes.isNotEmpty()) _voiceAudio.emit(bytes)
         }
     }
@@ -280,6 +336,8 @@ class ChatViewModel(
                     text = content,
                     thinking = snapshot.thinking,
                     webSearch = snapshot.webSearch,
+                    deepSearch = snapshot.deepSearch,
+                    effort = snapshot.effort,
                     files = files,
                     replayFromMessageId = replayFromMessageId,
                     continueGeneration = continueGeneration,
@@ -320,7 +378,7 @@ class ChatViewModel(
                         .lastOrNull { !it.fromUser }
                         ?.text
                         ?.takeIf { it.isNotBlank() }
-                        ?.let { speak(it) }
+                        ?.let { speakMessage(it) }
                 }
             } catch (cancel: CancellationException) {
                 updateMessage(localAssistantId) { it.copy(streaming = false) }
