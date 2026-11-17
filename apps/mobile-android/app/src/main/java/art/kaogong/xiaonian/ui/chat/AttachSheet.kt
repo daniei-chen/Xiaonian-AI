@@ -166,7 +166,7 @@ private fun SheetItem(
     ) {
         Box(
             modifier = Modifier
-                .size(44.dp)
+                .size(32.dp)
                 .clip(CircleShape)
                 .background(LocalPalette.current.surfaceMuted),
             contentAlignment = Alignment.Center,
