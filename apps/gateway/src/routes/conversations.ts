@@ -7,6 +7,7 @@ import type { CapabilitiesRuntime } from '../capabilities.js'
 import { newId } from '../db/client.js'
 import * as repo from '../db/repo.js'
 import { abortStream, registerStream, unregisterStream } from '../stream/active.js'
+import { deepSearchSystemPrompt, runDeepSearch } from '../search/deep-search.js'
 
 /** P0 开发期固定用户；接真实登录后从令牌里取 */
 export const DEV_USER_ID = '00000000-0000-4000-8000-000000000001'
@@ -140,6 +141,8 @@ export const registerConversationRoutes = (
       maxTokens?: number
       /** 联网搜索：只有支持服务端工具的通道能接 */
       webSearch?: boolean
+      /** 深度搜索：用能力层自己搜 + 抓正文 + 编号引用，不依赖上游工具 */
+      deepSearch?: boolean
       /** 已上传的文件引用（file_id 来自 /api/v1/files） */
       files?: Array<{
         fileId: string
@@ -198,10 +201,14 @@ export const registerConversationRoutes = (
     }
 
     const wantSearch = req.body?.webSearch === true
+    // 只有能力层真的装配了 search 才能走自建 loop
+    const wantDeepSearch =
+      req.body?.deepSearch === true && caps.defaults.search !== null && text.length > 0
     let providerName = req.body?.provider ?? caps.defaultChatProvider
 
-    // 联网与文件都依赖服务端工具能力，只有 anthropic 通道支持
-    if (wantSearch || fileRefs.length > 0) {
+    // 普通联网依赖服务端工具，文件依赖 file_id 引用，两者都只有 anthropic 通道支持；
+    // 深度搜索是我们自己的 loop，用默认（通常更便宜的）通道即可
+    if ((wantSearch && !wantDeepSearch) || fileRefs.length > 0) {
       const capable = caps.chatProviders.find((p) =>
         caps.registry.chat(p).caps().features.includes('server-tools'),
       )
@@ -283,13 +290,46 @@ export const registerConversationRoutes = (
       assistantMessageId: assistantMessage.id,
     })
 
+    // 深度搜索：自己搜、自己抓、自己编号。上游 server-tools 那条路看不到
+    // 中间过程，也换不了搜索源，来源可信度差一截。
+    let systemPrompt: string | undefined
+    const preCitations: Citation[] = []
+
+    if (wantDeepSearch && caps.defaults.search) {
+      send('search.started', { query: text })
+      try {
+        const outcome = await runDeepSearch(
+          caps.registry,
+          text,
+          { userId: DEV_USER_ID, traceId, isolationKey: DEV_USER_ID },
+          req.log,
+          {
+            searchProvider: caps.defaults.search,
+            fetchProvider: caps.defaults.fetch,
+          },
+        )
+        preCitations.push(...outcome.citations)
+        systemPrompt = deepSearchSystemPrompt(
+          outcome.context,
+          new Date().toISOString().slice(0, 10),
+        )
+        // 先给前端来源，用户能立刻看到"搜到了什么"
+        if (outcome.citations.length > 0) send('citations', { items: outcome.citations })
+        send('search.done', { fetched: outcome.fetchCalls, total: outcome.resultCount })
+      } catch (err) {
+        req.log.warn({ err }, 'deep search failed')
+        send('search.failed', { message: String(err) })
+      }
+    }
+
     try {
       for await (const ev of chat.stream(
         {
           messages: chatMessages,
+          ...(systemPrompt ? { system: systemPrompt } : {}),
           maxTokens: req.body?.maxTokens ?? 2048,
           thinking: { enabled: req.body?.thinking ?? false, effort: req.body?.effort ?? 'high' },
-          ...(wantSearch ? { tools: ['deepseek_web_search'] } : {}),
+          ...(wantSearch && !wantDeepSearch ? { tools: ['deepseek_web_search'] } : {}),
         },
         { userId: DEV_USER_ID, traceId, signal: ac.signal, isolationKey: DEV_USER_ID },
       )) {
@@ -325,6 +365,9 @@ export const registerConversationRoutes = (
       req.log.warn({ err, messageId: assistantMessage.id }, 'stream ended with error')
       failure = { code: errorCodeOf(err), message: errorMessageOf(err) }
     }
+
+    // 深度搜索的来源在上游没有 citations 时兜底，否则历史里会丢来源
+    if (citations.length === 0 && preCitations.length > 0) citations.push(...preCitations)
 
     const finalBlocks = blocks.filter((b): b is ContentBlock => Boolean(b))
 

@@ -10,6 +10,7 @@ import { registerAsrRoutes } from './routes/asr.js'
 import { registerConversationRoutes } from './routes/conversations.js'
 import { registerFileRoutes } from './routes/files.js'
 import { registerTtsRoutes } from './routes/tts.js'
+import { registerToolRoutes } from './routes/tools.js'
 import { registerTransferRoutes } from './routes/transfer.js'
 
 /** P0 先固定单用户；生产环境由 spec 8.1 的认证层替换 */
@@ -91,6 +92,11 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   registerFileRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
   registerTtsRoutes(app, { baseURL: caps.config.tts?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
   registerTransferRoutes(app, { db, userId: DEV_USER_ID })
+  registerToolRoutes(app, {
+    registry: caps.registry,
+    userId: DEV_USER_ID,
+    defaults: caps.defaults,
+  })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

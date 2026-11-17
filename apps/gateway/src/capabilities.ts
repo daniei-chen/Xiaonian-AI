@@ -2,6 +2,9 @@ import { resolve } from 'node:path'
 import {
   AnthropicChatCapability,
   CapabilityRegistry,
+  DeepSeekFetchCapability,
+  DeepSeekOcrCapability,
+  DeepSeekSearchCapability,
   loadCapabilitiesConfig,
   OpenAiChatCapability,
   type CapabilitiesConfig,
@@ -14,6 +17,12 @@ export interface CapabilitiesRuntime {
   /** 本轮对话实际可用的 provider（装配成功的那些） */
   chatProviders: string[]
   defaultChatProvider: string | null
+  /** 工具类能力的默认 provider，null 表示该能力没装配成功 */
+  defaults: {
+    search: string | null
+    fetch: string | null
+    ocr: string | null
+  }
 }
 
 /**
@@ -54,5 +63,43 @@ export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> 
   const defaultChatProvider =
     preferred && chatProviders.includes(preferred) ? preferred : (chatProviders[0] ?? null)
 
-  return { registry, config, chatProviders, defaultChatProvider }
+  // 工具类能力：search / fetch / ocr 都走 DeepSeek 的独立工具接口。
+  // 装配进同一个 registry，这样换 anysearch 之类的 provider 只需要改配置。
+  for (const kind of ['search', 'fetch', 'ocr'] as const) {
+    const section = config[kind]
+    for (const [name, entry] of Object.entries(section?.providers ?? {})) {
+      if (!entry.baseURL) continue
+      const key = entry.apiKeyEnv ? apiKey(entry.apiKeyEnv) : undefined
+      if (!key) continue
+
+      const opts = {
+        provider: name,
+        baseURL: entry.baseURL,
+        apiKey: key,
+        ...(entry.timeoutMs !== undefined ? { timeoutMs: entry.timeoutMs } : {}),
+      }
+
+      if (kind === 'search') registry.register(new DeepSeekSearchCapability(opts))
+      else if (kind === 'fetch') registry.register(new DeepSeekFetchCapability(opts))
+      else registry.register(new DeepSeekOcrCapability(opts))
+    }
+  }
+
+  const pickDefault = (kind: 'search' | 'fetch' | 'ocr'): string | null => {
+    const list = registry.providers(kind)
+    const pref = config[kind]?.default ?? null
+    return pref && list.includes(pref) ? pref : (list[0] ?? null)
+  }
+
+  return {
+    registry,
+    config,
+    chatProviders,
+    defaultChatProvider,
+    defaults: {
+      search: pickDefault('search'),
+      fetch: pickDefault('fetch'),
+      ocr: pickDefault('ocr'),
+    },
+  }
 }
