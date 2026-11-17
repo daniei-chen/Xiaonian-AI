@@ -1,5 +1,6 @@
 import { resolve } from 'node:path'
 import {
+  AnthropicChatCapability,
   CapabilityRegistry,
   loadCapabilitiesConfig,
   OpenAiChatCapability,
@@ -17,8 +18,10 @@ export interface CapabilitiesRuntime {
 
 /**
  * 按 config/capabilities.yaml 装配 provider。
- * 只装配密钥齐备、且本轮已实现 driver 的条目——缺 key 的静默跳过，
- * 让「配了但没填密钥」不至于把整个 Gateway 拖挂。
+ *
+ * 两套协议都能装：protocol=openai 走 /chat/completions，protocol=anthropic 走
+ * /anthropic/v1/messages（只有这条通道支持服务端联网工具）。
+ * 缺密钥的条目静默跳过，不让"配了但没填 key"把整个 Gateway 拖挂。
  */
 export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> => {
   const config = await loadCapabilitiesConfig(resolve(env.rootDir, 'config/capabilities.yaml'))
@@ -26,21 +29,23 @@ export const buildCapabilities = async (env: Env): Promise<CapabilitiesRuntime> 
 
   const chatSection = config.chat
   for (const [name, entry] of Object.entries(chatSection?.providers ?? {})) {
-    // anthropic driver 尚未实现（下一轮补），这里只装 openai 协议
-    if (entry.protocol !== 'openai') continue
     if (!entry.baseURL || !entry.model) continue
 
     const key = entry.apiKeyEnv ? apiKey(entry.apiKeyEnv) : undefined
     if (!key) continue
 
+    const common = {
+      provider: name,
+      baseURL: entry.baseURL,
+      apiKey: key,
+      defaultModel: entry.model,
+      ...(entry.timeoutMs !== undefined ? { timeoutMs: entry.timeoutMs } : {}),
+    }
+
     registry.register(
-      new OpenAiChatCapability({
-        provider: name,
-        baseURL: entry.baseURL,
-        apiKey: key,
-        defaultModel: entry.model,
-        ...(entry.timeoutMs !== undefined ? { timeoutMs: entry.timeoutMs } : {}),
-      }),
+      entry.protocol === 'anthropic'
+        ? new AnthropicChatCapability(common)
+        : new OpenAiChatCapability(common),
     )
   }
 

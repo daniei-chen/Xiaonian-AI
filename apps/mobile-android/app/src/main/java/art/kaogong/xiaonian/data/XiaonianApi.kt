@@ -13,6 +13,7 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.intOrNull
+import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
@@ -36,9 +37,17 @@ data class ConversationDto(
 )
 
 @Serializable
+data class CitationDto(
+    val index: Int = 0,
+    val url: String,
+    val title: String? = null,
+)
+
+@Serializable
 data class BlockDto(
     val type: String,
     val text: String? = null,
+    val citations: List<CitationDto>? = null,
 )
 
 @Serializable
@@ -66,6 +75,7 @@ sealed interface ChatStreamEvent {
     data class Started(val provider: String, val model: String) : ChatStreamEvent
     data class TextDelta(val index: Int, val text: String) : ChatStreamEvent
     data class ReasoningDelta(val index: Int, val text: String) : ChatStreamEvent
+    data class Citations(val items: List<CitationDto>) : ChatStreamEvent
     data class Completed(val messageId: String, val canContinue: Boolean) : ChatStreamEvent
     data class Failed(val code: String, val message: String) : ChatStreamEvent
 }
@@ -123,14 +133,29 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
         runCatching { client.newCall(request).execute().close() }
     }
 
+    /** 语音输入：整段 WAV 上传，返回转录文本 */
+    suspend fun transcribe(wav: ByteArray): String = withContext(Dispatchers.IO) {
+        val request = Request.Builder()
+            .url(url("/api/v1/asr"))
+            .post(wav.toRequestBody("audio/wav".toMediaType()))
+            .build()
+        client.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) throw IOException("asr failed: ${response.code}")
+            json.parseToJsonElement(body).jsonObject["text"]?.jsonPrimitive?.contentOrNull.orEmpty()
+        }
+    }
+
     fun streamMessage(
         conversationId: String,
         text: String,
         thinking: Boolean,
+        webSearch: Boolean = false,
     ): Flow<ChatStreamEvent> = callbackFlow {
         val payload = buildJsonObject {
             put("text", text)
             put("thinking", thinking)
+            put("webSearch", webSearch)
             put("maxTokens", 2048)
         }.toString()
 
@@ -186,6 +211,20 @@ class XiaonianApi(private val baseUrl: String = ApiConfig.BASE_URL) {
                 obj["index"]?.jsonPrimitive?.intOrNull ?: 0,
                 obj["text"]?.jsonPrimitive?.contentOrNull.orEmpty(),
             )
+            "citations" -> {
+                val arr = obj["items"]?.jsonArray ?: return null
+                ChatStreamEvent.Citations(
+                    arr.mapNotNull { item ->
+                        val o = item.jsonObject
+                        val url = o["url"]?.jsonPrimitive?.contentOrNull ?: return@mapNotNull null
+                        CitationDto(
+                            index = o["index"]?.jsonPrimitive?.intOrNull ?: 0,
+                            url = url,
+                            title = o["title"]?.jsonPrimitive?.contentOrNull,
+                        )
+                    },
+                )
+            }
             "message.completed" -> ChatStreamEvent.Completed(
                 obj["messageId"]?.jsonPrimitive?.contentOrNull.orEmpty(),
                 obj["canContinue"]?.jsonPrimitive?.contentOrNull == "true",

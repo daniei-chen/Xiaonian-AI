@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -35,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
@@ -131,6 +133,61 @@ private fun AssistantMessage(
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color(0xFFD33A3A),
             )
+        }
+
+        if (message.citations.isNotEmpty()) {
+            Spacer(Modifier.height(10.dp))
+            CitationList(message.citations)
+        }
+    }
+}
+
+/** 引用来源：序号圆 + 标题 + 域名。正文里的 [n] 与之对应 */
+@Composable
+private fun CitationList(citations: List<UiCitation>) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        citations.forEach { citation ->
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF7F7F8))
+                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(18.dp)
+                        .clip(CircleShape)
+                        .background(XiaonianColors.Accent.copy(alpha = 0.12f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "${citation.index}",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = XiaonianColors.AccentDeep,
+                    )
+                }
+
+                Spacer(Modifier.width(9.dp))
+
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = citation.title ?: citation.host,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = XiaonianColors.Ink,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = citation.host,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = XiaonianColors.InkSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
         }
     }
 }

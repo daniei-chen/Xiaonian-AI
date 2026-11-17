@@ -6,6 +6,7 @@ import Fastify, { type FastifyError } from 'fastify'
 import type { Logger } from 'pino'
 import type { CapabilitiesRuntime } from './capabilities.js'
 import type { Env } from './env.js'
+import { registerAsrRoutes } from './routes/asr.js'
 import { registerConversationRoutes } from './routes/conversations.js'
 
 export interface AppDeps {
@@ -67,6 +68,7 @@ export const buildApp = async ({ env, logger, db, caps }: AppDeps) => {
   }))
 
   registerConversationRoutes(app, { db, caps })
+  registerAsrRoutes(app, { baseURL: caps.config.files?.providers.deepseek?.baseURL ?? 'https://api.deepseek.com' })
 
   app.setNotFoundHandler((req, reply) => {
     reply.code(404).send(apiError('not_found', `no route: ${req.method} ${req.url}`, String(req.id)))

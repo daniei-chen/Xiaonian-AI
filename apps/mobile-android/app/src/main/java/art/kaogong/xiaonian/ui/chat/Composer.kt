@@ -51,6 +51,8 @@ fun Composer(
     onOpenVoiceMode: () -> Unit,
     onAttach: () -> Unit,
     modifier: Modifier = Modifier,
+    recording: Boolean = false,
+    transcribing: Boolean = false,
 ) {
     val hasText = value.isNotBlank()
 
@@ -83,9 +85,13 @@ fun Composer(
                     Box {
                         if (value.isEmpty()) {
                             Text(
-                                text = "询问 小念",
+                                text = when {
+                                    recording -> "正在录音，再点一下结束"
+                                    transcribing -> "识别中…"
+                                    else -> "询问 小念"
+                                },
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = XiaonianColors.InkTertiary,
+                                color = if (recording) Color(0xFFE11D48) else XiaonianColors.InkTertiary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                             )
@@ -95,7 +101,26 @@ fun Composer(
                 },
             )
 
-            ComposerIcon(Icons.Outlined.Mic, "语音输入", onVoiceInput)
+            // 录音中给一层浅红底 + 红色图标，转录中禁用点击
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(if (recording) Color(0xFFFFE4E6) else Color.Transparent)
+                    .clickable(enabled = !transcribing, onClick = onVoiceInput),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Mic,
+                    contentDescription = if (recording) "停止录音" else "语音输入",
+                    tint = when {
+                        recording -> Color(0xFFE11D48)
+                        transcribing -> XiaonianColors.InkTertiary
+                        else -> XiaonianColors.Ink
+                    },
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
 
         Spacer(Modifier.width(8.dp))

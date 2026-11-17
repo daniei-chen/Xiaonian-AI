@@ -1,5 +1,6 @@
 import type {
   CapabilityKind,
+  Citation,
   ContentBlock,
   FetchedPage,
   SearchResult,
@@ -58,6 +59,8 @@ export type ChatStreamEvent =
   | { type: 'block_start'; index: number; block: ContentBlock }
   | { type: 'text_delta'; index: number; text: string }
   | { type: 'reasoning_delta'; index: number; text: string }
+  /** 引用不是正文，单独一条事件；前端据此渲染来源卡片 */
+  | { type: 'citations'; citations: Citation[] }
   | { type: 'usage'; usage: UsageSummary }
   | { type: 'finish'; finishReason: ChatOutput['finishReason'] }
 

@@ -27,6 +27,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
@@ -73,6 +74,8 @@ fun ChatScreen(
                 onVoiceInput = onVoiceInput,
                 onOpenVoiceMode = onOpenVoiceMode,
                 onAttach = onAttach,
+                recording = state.recording,
+                transcribing = state.transcribing,
                 modifier = Modifier
                     .navigationBarsPadding()
                     .imePadding(),
@@ -107,6 +110,16 @@ fun ChatScreen(
                     onToggleReasoning = onToggleReasoning,
                     modifier = Modifier.weight(1f),
                 )
+
+                // 有消息时也要能看到错误（录音太短、识别失败等）
+                state.error?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color(0xFFD33A3A),
+                        modifier = Modifier.padding(bottom = 6.dp),
+                    )
+                }
             }
         }
     }

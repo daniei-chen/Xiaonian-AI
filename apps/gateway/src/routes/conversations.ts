@@ -1,6 +1,6 @@
 import type { PGlite } from '@electric-sql/pglite'
 import { UpstreamError, type ChatMessage } from '@xiaonian/adapters'
-import { apiError, emptyUsage, type ContentBlock, type Message, type UsageSummary } from '@xiaonian/protocol'
+import { apiError, emptyUsage, type Citation, type ContentBlock, type Message, type UsageSummary } from '@xiaonian/protocol'
 import type { FastifyInstance } from 'fastify'
 import type { ServerResponse } from 'node:http'
 import type { CapabilitiesRuntime } from '../capabilities.js'
@@ -131,7 +131,16 @@ export const registerConversationRoutes = (
 
   app.post<{
     Params: { id: string }
-    Body: { text?: string; thinking?: boolean; effort?: 'low' | 'high' | 'max'; maxTokens?: number }
+    Body: {
+      text?: string
+      thinking?: boolean
+      effort?: 'low' | 'high' | 'max'
+      maxTokens?: number
+      /** 联网搜索：只有支持服务端工具的通道能接 */
+      webSearch?: boolean
+      /** 显式指定 provider，不传走默认 */
+      provider?: string
+    }
   }>('/api/v1/conversations/:id/messages', async (req, reply) => {
     const traceId = String(req.id)
     const conversation = await repo.getConversation(db, DEV_USER_ID, req.params.id)
@@ -144,7 +153,17 @@ export const registerConversationRoutes = (
       return reply.code(400).send(apiError('bad_request', 'text is required', traceId))
     }
 
-    const providerName = caps.defaultChatProvider
+    const wantSearch = req.body?.webSearch === true
+    let providerName = req.body?.provider ?? caps.defaultChatProvider
+
+    // 联网要走服务端工具，只有 anthropic 通道支持；自动挑一个能接的
+    if (wantSearch) {
+      const capable = caps.chatProviders.find((p) =>
+        caps.registry.chat(p).caps().features.includes('server-tools'),
+      )
+      if (capable) providerName = capable
+    }
+
     if (!providerName) {
       return reply
         .code(503)
@@ -195,6 +214,7 @@ export const registerConversationRoutes = (
     })
 
     const blocks: ContentBlock[] = []
+    const citations: Citation[] = []
     let usage: UsageSummary = emptyUsage()
     let finishReason: 'end_turn' | 'max_tokens' | 'tool_use' | 'refusal' = 'end_turn'
     let failure: { code: string; message: string } | null = null
@@ -211,6 +231,7 @@ export const registerConversationRoutes = (
           messages: chatMessages,
           maxTokens: req.body?.maxTokens ?? 2048,
           thinking: { enabled: req.body?.thinking ?? false, effort: req.body?.effort ?? 'high' },
+          ...(wantSearch ? { tools: ['deepseek_web_search'] } : {}),
         },
         { userId: DEV_USER_ID, traceId, signal: ac.signal, isolationKey: DEV_USER_ID },
       )) {
@@ -230,6 +251,10 @@ export const registerConversationRoutes = (
             appendDelta(blocks, ev.index, 'reasoning', ev.text)
             send('reasoning.delta', { index: ev.index, text: ev.text })
             break
+          case 'citations':
+            citations.push(...ev.citations)
+            send('citations', { items: ev.citations })
+            break
           case 'usage':
             usage = ev.usage
             break
@@ -244,6 +269,17 @@ export const registerConversationRoutes = (
     }
 
     const finalBlocks = blocks.filter((b): b is ContentBlock => Boolean(b))
+
+    // 引用挂在第一个正文块上，历史回看时还能拿到来源
+    if (citations.length > 0) {
+      const at = finalBlocks.findIndex((b) => b.type === 'text')
+      if (at >= 0) {
+        const target = finalBlocks[at]
+        if (target && target.type === 'text') {
+          finalBlocks[at] = { ...target, citations }
+        }
+      }
+    }
 
     try {
       if (failure) {
