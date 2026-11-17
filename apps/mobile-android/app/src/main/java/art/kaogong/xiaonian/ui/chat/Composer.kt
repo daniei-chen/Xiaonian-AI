@@ -1,6 +1,7 @@
 package art.kaogong.xiaonian.ui.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -90,7 +91,8 @@ fun Composer(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(20.dp))
-                .background(LocalPalette.current.surfaceMuted)
+                .background(LocalPalette.current.canvas)
+                .border(1.dp, LocalPalette.current.divider, RoundedCornerShape(20.dp))
                 .padding(horizontal = 4.dp),
             verticalAlignment = Alignment.Bottom,
         ) {
@@ -153,7 +155,7 @@ fun Composer(
             modifier = Modifier
                 .size(48.dp)
                 .clip(CircleShape)
-                .background(LocalAccent.current.accent)
+                .background(LocalPalette.current.ink)
                 .clickable {
                     when {
                         streaming -> onStop()

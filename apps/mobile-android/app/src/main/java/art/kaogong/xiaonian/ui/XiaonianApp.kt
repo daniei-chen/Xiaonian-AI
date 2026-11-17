@@ -50,6 +50,7 @@ fun XiaonianApp(
     var showSettings by remember { mutableStateOf(false) }
     var provider by remember { mutableStateOf(Settings.provider(context)) }
     var settingsModel by remember { mutableStateOf(Settings.model(context)) }
+    var mode by remember { mutableStateOf(art.kaogong.xiaonian.ui.model.ChatMode.Chat) }
     var darkMode by remember { mutableStateOf(Settings.darkMode(context)) }
     var fontScale by remember { mutableStateOf(Settings.fontScale(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
@@ -295,8 +296,8 @@ fun XiaonianApp(
         ) {
             ChatScreen(
                 state = state,
-                modelLabel = settingsModel,
-            onOpenSettings = { showSettings = true },
+                mode = mode,
+                onModeChange = { mode = it },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onNewChat = {
                 viewModel.newConversation()

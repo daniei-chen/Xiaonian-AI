@@ -126,7 +126,7 @@ object Settings {
 
     /** 强调色主题：purple / black / green / blue / orange */
     fun accentTheme(context: Context): String =
-        prefs(context).getString(KEY_ACCENT, null) ?: "purple"
+        prefs(context).getString(KEY_ACCENT, null) ?: "blue"
 
     fun setAccentTheme(context: Context, id: String) {
         prefs(context).edit().putString(KEY_ACCENT, id).apply()

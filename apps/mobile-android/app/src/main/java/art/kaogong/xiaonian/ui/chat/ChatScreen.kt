@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
+import art.kaogong.xiaonian.ui.model.ChatMode
 import art.kaogong.xiaonian.ui.theme.LocalAccent
 import art.kaogong.xiaonian.ui.theme.LocalPalette
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
@@ -39,8 +40,8 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
 @Composable
 fun ChatScreen(
     state: ChatUiState,
-    modelLabel: String,
-    onOpenSettings: () -> Unit,
+    mode: ChatMode,
+    onModeChange: (ChatMode) -> Unit,
     onOpenDrawer: () -> Unit,
     onNewChat: () -> Unit,
     onConversationClick: (String) -> Unit,
@@ -63,10 +64,10 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             ChatTopBar(
-                modelLabel = modelLabel,
-                onOpenSettings = onOpenSettings,
+                mode = mode,
+                onModeChange = onModeChange,
                 onOpenDrawer = onOpenDrawer,
-                onNewChat = onNewChat,
+                onOpenVoiceMode = onOpenVoiceMode,
                 // 顶栏要自己吃状态栏，Scaffold 的 contentWindowInsets 管不到 topBar
                 modifier = Modifier.statusBarsPadding(),
             )
