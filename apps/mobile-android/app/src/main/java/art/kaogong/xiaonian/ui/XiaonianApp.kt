@@ -26,7 +26,6 @@ import art.kaogong.xiaonian.ui.chat.AttachSheet
 import art.kaogong.xiaonian.ui.chat.ChatScreen
 import art.kaogong.xiaonian.ui.chat.ChatViewModel
 import art.kaogong.xiaonian.ui.drawer.XiaonianDrawer
-import art.kaogong.xiaonian.ui.model.ChatMode
 import art.kaogong.xiaonian.ui.settings.ApiSettingsDialog
 import art.kaogong.xiaonian.ui.voice.VoiceModeScreen
 import art.kaogong.xiaonian.ui.voice.VoicePlayer
@@ -41,13 +40,11 @@ fun XiaonianApp(
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
-    var mode by remember { mutableStateOf(ChatMode.Chat) }
     var input by remember { mutableStateOf("") }
     var voiceMode by remember { mutableStateOf(false) }
     var showAttach by remember { mutableStateOf(false) }
     var showSettings by remember { mutableStateOf(false) }
-    var settingsProvider by remember { mutableStateOf(Settings.provider(context)) }
+    var provider by remember { mutableStateOf(Settings.provider(context)) }
     var settingsModel by remember { mutableStateOf(Settings.model(context)) }
     /** 刚申请权限、授权后要立刻开始录音 */
     var pendingRecord by remember { mutableStateOf(false) }
@@ -183,7 +180,11 @@ fun XiaonianApp(
     }
 
     if (voiceMode) {
-        val player = remember { VoicePlayer(context) }
+        var speaking by remember { mutableStateOf(false) }
+
+        val player = remember {
+            VoicePlayer(context).also { p -> p.onComplete = { speaking = false } }
+        }
 
         DisposableEffect(Unit) {
             viewModel.voiceModeActive = true
@@ -194,18 +195,28 @@ fun XiaonianApp(
         }
 
         LaunchedEffect(Unit) {
-            viewModel.voiceAudio.collect { bytes -> player.play(bytes) }
+            viewModel.voiceAudio.collect { bytes ->
+                speaking = bytes.isNotEmpty()
+                player.play(bytes)
+            }
         }
 
         VoiceModeScreen(
             onClose = {
                 player.stop()
+                speaking = false
                 voiceMode = false
             },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             listening = state.recording,
             transcribing = state.transcribing,
             thinking = state.streaming,
+            speaking = speaking,
+            onAttach = { showAttach = true },
+            onStopSpeaking = {
+                player.stop()
+                speaking = false
+            },
             onTapOrb = {
                 if (state.recording) {
                     viewModel.finishVoiceTurn()
@@ -258,8 +269,13 @@ fun XiaonianApp(
     ) {
         ChatScreen(
             state = state,
-            mode = mode,
-            onModeChange = { mode = it },
+            activeProvider = provider,
+            onSelectProvider = { picked ->
+                Settings.setProvider(context, picked)
+                provider = picked
+                provider = picked
+            },
+            onOpenSettings = { showSettings = true },
             onOpenDrawer = { scope.launch { drawerState.open() } },
             onNewChat = {
                 viewModel.newConversation()
@@ -286,20 +302,20 @@ fun XiaonianApp(
 
     if (showSettings) {
         ApiSettingsDialog(
-            provider = settingsProvider,
-            apiKey = Settings.apiKey(context, settingsProvider),
+            provider = provider,
+            apiKey = Settings.apiKey(context, provider),
             model = settingsModel,
             onDismiss = { showSettings = false },
-            onSave = { provider, key, model ->
-                Settings.setProvider(context, provider)
-                Settings.setApiKey(context, provider, key)
+            onSave = { picked, key, model ->
+                Settings.setProvider(context, picked)
+                Settings.setApiKey(context, picked, key)
                 Settings.setModel(context, model)
-                settingsProvider = provider
+                provider = picked
                 settingsModel = Settings.model(context)
                 viewModel.refreshConversations()
             },
-            onTest = { provider, key, model, callback ->
-                viewModel.testUpstream(provider, key, model, callback)
+            onTest = { picked, key, model, callback ->
+                viewModel.testUpstream(picked, key, model, callback)
             },
         )
     }

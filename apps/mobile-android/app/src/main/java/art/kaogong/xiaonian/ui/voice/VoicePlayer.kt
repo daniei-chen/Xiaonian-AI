@@ -15,6 +15,9 @@ class VoicePlayer(private val context: Context) {
     private var player: MediaPlayer? = null
     private var file: File? = null
 
+    /** 播完/被停止时回调，UI 用来复位「正在朗读」的状态 */
+    var onComplete: (() -> Unit)? = null
+
     val isPlaying: Boolean get() = player?.isPlaying == true
 
     fun play(bytes: ByteArray) {
@@ -29,7 +32,10 @@ class VoicePlayer(private val context: Context) {
             MediaPlayer().apply {
                 setDataSource(temp.absolutePath)
                 prepare()
-                setOnCompletionListener { stop() }
+                setOnCompletionListener {
+                    stop()
+                    onComplete?.invoke()
+                }
                 start()
             }
         }.getOrNull()

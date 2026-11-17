@@ -36,6 +36,7 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Menu
 import androidx.compose.material.icons.outlined.MicOff
+import androidx.compose.material.icons.outlined.Stop
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -75,7 +76,11 @@ fun VoiceModeScreen(
     listening: Boolean = false,
     transcribing: Boolean = false,
     thinking: Boolean = false,
+    /** 正在朗读回答：此时底部按钮变成「停止」 */
+    speaking: Boolean = false,
     onTapOrb: () -> Unit = {},
+    onAttach: () -> Unit = {},
+    onStopSpeaking: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Box(
@@ -94,14 +99,6 @@ fun VoiceModeScreen(
                 Icon(
                     imageVector = Icons.Outlined.Menu,
                     contentDescription = "菜单",
-                    tint = XiaonianColors.Ink,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
-            PressableCircle(size = 48.dp, background = Color(0xFFF2F2F4), onClick = {}) {
-                Icon(
-                    imageVector = Icons.Outlined.Tune,
-                    contentDescription = "语音设置",
                     tint = XiaonianColors.Ink,
                     modifier = Modifier.size(20.dp),
                 )
@@ -157,7 +154,7 @@ fun VoiceModeScreen(
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
                             indication = ripple(bounded = true, radius = 20.dp, color = Color.Black),
-                            onClick = {},
+                            onClick = onAttach,
                         ),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -179,11 +176,15 @@ fun VoiceModeScreen(
 
             Spacer(Modifier.width(10.dp))
 
-            PressableCircle(size = 52.dp, background = XiaonianColors.SurfaceMuted, onClick = {}) {
+            PressableCircle(
+                size = 52.dp,
+                background = if (speaking) XiaonianColors.Accent else XiaonianColors.SurfaceMuted,
+                onClick = { if (speaking) onStopSpeaking() },
+            ) {
                 Icon(
-                    imageVector = Icons.Outlined.MicOff,
-                    contentDescription = "静音",
-                    tint = XiaonianColors.Ink,
+                    imageVector = if (speaking) Icons.Outlined.Stop else Icons.Outlined.MicOff,
+                    contentDescription = if (speaking) "停止朗读" else "静音",
+                    tint = if (speaking) Color.White else XiaonianColors.Ink,
                     modifier = Modifier.size(24.dp),
                 )
             }

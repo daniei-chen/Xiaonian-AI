@@ -31,14 +31,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import art.kaogong.xiaonian.data.ConversationDto
-import art.kaogong.xiaonian.ui.model.ChatMode
 import art.kaogong.xiaonian.ui.theme.XiaonianColors
 
 @Composable
 fun ChatScreen(
     state: ChatUiState,
-    mode: ChatMode,
-    onModeChange: (ChatMode) -> Unit,
+    activeProvider: String,
+    onSelectProvider: (String) -> Unit,
+    onOpenSettings: () -> Unit,
     onOpenDrawer: () -> Unit,
     onNewChat: () -> Unit,
     onConversationClick: (String) -> Unit,
@@ -60,8 +60,13 @@ fun ChatScreen(
         contentWindowInsets = WindowInsets.safeDrawing,
         topBar = {
             ChatTopBar(
-                mode = mode,
-                onModeChange = onModeChange,
+                providers = listOf(
+                    art.kaogong.xiaonian.data.Settings.PROVIDER_ZHIHUI to "智汇",
+                    art.kaogong.xiaonian.data.Settings.PROVIDER_DEEPSEEK to "官方",
+                ),
+                activeProvider = activeProvider,
+                onSelectProvider = onSelectProvider,
+                onOpenSettings = onOpenSettings,
                 onOpenDrawer = onOpenDrawer,
                 onNewChat = onNewChat,
                 // 顶栏要自己吃状态栏，Scaffold 的 contentWindowInsets 管不到 topBar

@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Schedule
@@ -26,7 +27,13 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -52,6 +59,18 @@ fun XiaonianDrawer(
     onExport: () -> Unit,
     onImport: () -> Unit,
 ) {
+    var searching by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+
+    // 空查询显示全部；否则按标题过滤（消息内容搜索需要 FTS，后面再说）
+    val shown = remember(conversations, query) {
+        if (query.isBlank()) {
+            conversations
+        } else {
+            conversations.filter { it.title?.contains(query, ignoreCase = true) == true }
+        }
+    }
+
     ModalDrawerSheet(
         modifier = Modifier.width(320.dp),
         drawerContainerColor = XiaonianColors.Canvas,
@@ -75,17 +94,38 @@ fun XiaonianDrawer(
                 )
                 Spacer(Modifier.weight(1f))
                 CircleIconButton(
-                    icon = Icons.Outlined.Search,
-                    contentDescription = "搜索会话",
-                    onClick = {},
+                    icon = if (searching) Icons.Outlined.Close else Icons.Outlined.Search,
+                    contentDescription = if (searching) "关闭搜索" else "搜索会话",
+                    onClick = {
+                        searching = !searching
+                        if (!searching) query = ""
+                    },
+                )
+            }
+
+            // 搜索展开后才占位，平时不挤列表
+            if (searching) {
+                Spacer(Modifier.height(10.dp))
+                TextField(
+                    value = query,
+                    onValueChange = { query = it },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(XiaonianColors.SurfaceMuted),
+                    placeholder = { Text("搜索会话内容", style = MaterialTheme.typography.bodyMedium) },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                    ),
                 )
             }
 
             Spacer(Modifier.height(18.dp))
 
-            DrawerMenuRow(Icons.Outlined.Schedule, "定时任务")
-            DrawerMenuRow(Icons.Outlined.FolderOpen, "资料空间")
-            DrawerMenuRow(Icons.Outlined.Tune, "自定义")
             DrawerMenuRow(Icons.Outlined.Settings, "设置", onClick = onOpenSettings)
 
             Spacer(Modifier.height(14.dp))
@@ -99,20 +139,22 @@ fun XiaonianDrawer(
             Spacer(Modifier.height(4.dp))
             HorizontalDivider(color = XiaonianColors.Divider)
             Spacer(Modifier.height(10.dp))
-            conversations.forEach { item ->
+            if (shown.isEmpty() && query.isNotBlank()) {
+                Text(
+                    text = "没有匹配的会话",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = XiaonianColors.InkTertiary,
+                    modifier = Modifier.padding(vertical = 14.dp, horizontal = 12.dp),
+                )
+            }
+
+            shown.forEach { item ->
                 DrawerConversationRow(
                     item = item,
                     selected = item.id == activeId,
                     onClick = { onSelect(item) },
                 )
             }
-
-            Text(
-                text = "查看全部…",
-                style = MaterialTheme.typography.bodyMedium,
-                color = XiaonianColors.InkTertiary,
-                modifier = Modifier.padding(vertical = 12.dp),
-            )
 
             Spacer(Modifier.weight(1f))
 
