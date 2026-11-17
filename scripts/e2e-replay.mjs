@@ -81,10 +81,14 @@ const third = await readSseText(
 )
 console.log(`continued: "${third.text.trim().slice(0, 80)}"`)
 d = await detail(conv.id)
-console.log(`messages after continue: ${d.messages.length} (expect 4)`)
+// 续写不再落一条假的用户消息：user1 + assistant1 + assistant2
+console.log(`messages after continue: ${d.messages.length} (expect 3)`)
+const hasPromptUser = d.messages.some((m) => m.role === 'user' && m.blocks.some((b) => (b.text ?? '').includes('接着你上一条回答')))
+console.log(`prompt leaked into history: ${hasPromptUser ? 'YES (bad)' : 'NO (good)'}`)
 
 const ok =
-  d.messages.length === 4 &&
+  d.messages.length === 3 &&
+  !hasPromptUser &&
   second.text.trim().length > 0 &&
   third.text.trim().length > 0
 console.log(ok ? 'PASS' : 'FAIL')

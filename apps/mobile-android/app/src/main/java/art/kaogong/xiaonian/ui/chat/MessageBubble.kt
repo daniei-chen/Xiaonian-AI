@@ -34,6 +34,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,6 +49,42 @@ import art.kaogong.xiaonian.ui.theme.XiaonianColors
  * 用户消息右对齐灰气泡；助手消息无气泡铺满宽度——这是截图里 ChatGPT 的做法，
  * 长回答不会被气泡挤成窄条。
  */
+/**
+ * 续写产生的文本接在原文后面。原文可能停在句子中间，所以不能直接粘，
+ * 但也不能一律加空行——末尾已经是标点或空白时直接拼。
+ */
+private fun joinContinuation(previous: String, addition: String): String {
+    if (previous.isEmpty()) return addition
+    if (addition.isEmpty()) return previous
+    val endsCleanly = previous.last().isWhitespace() || previous.last() in "。！？.!?；;：:，,、\n"
+    return if (endsCleanly) previous + addition else "$previous\n$addition"
+}
+
+/**
+ * 续写会产生一条新的 assistant 消息（它与上一条之间没有用户消息）。
+ * 显示时并回上一条，用户看到的是"回答被补全"，而不是冒出来的第二条回答。
+ */
+private fun mergeContinuations(messages: List<UiMessage>): List<UiMessage> {
+    val out = mutableListOf<UiMessage>()
+    for (message in messages) {
+        val previous = out.lastOrNull()
+        if (!message.fromUser && previous != null && !previous.fromUser) {
+            out[out.lastIndex] = previous.copy(
+                text = joinContinuation(previous.text, message.text),
+                reasoning = listOf(previous.reasoning, message.reasoning)
+                    .filter { it.isNotBlank() }
+                    .joinToString("\n"),
+                citations = (previous.citations + message.citations).distinctBy { it.url },
+                streaming = previous.streaming || message.streaming,
+                failed = previous.failed || message.failed,
+            )
+        } else {
+            out += message
+        }
+    }
+    return out
+}
+
 @Composable
 fun MessageList(
     messages: List<UiMessage>,
@@ -58,18 +95,19 @@ fun MessageList(
     modifier: Modifier = Modifier,
 ) {
     val listState = rememberLazyListState()
+    val display = remember(messages) { mergeContinuations(messages) }
 
     // 新消息与流式增量都要跟到底部，否则回答和引用会落在可视区外
-    val last = messages.lastOrNull()
+    val last = display.lastOrNull()
     LaunchedEffect(
-        messages.size,
+        display.size,
         last?.id,
         last?.text?.length ?: 0,
         last?.reasoning?.length ?: 0,
         last?.citations?.size ?: 0,
     ) {
-        if (messages.isNotEmpty()) {
-            listState.scrollToItem(messages.lastIndex, scrollOffset = 100_000)
+        if (display.isNotEmpty()) {
+            listState.scrollToItem(display.lastIndex, scrollOffset = 100_000)
         }
     }
 
@@ -79,7 +117,7 @@ fun MessageList(
         contentPadding = PaddingValues(vertical = 10.dp),
         verticalArrangement = Arrangement.spacedBy(2.dp),
     ) {
-        itemsIndexed(messages, key = { _, m -> m.id }) { index, message ->
+        itemsIndexed(display, key = { _, m -> m.id }) { index, message ->
             if (message.fromUser) {
                 UserBubble(message)
             } else {
@@ -89,7 +127,7 @@ fun MessageList(
                     onRegenerate = onRegenerate,
                     onContinue = onContinue,
                     onSpeak = onSpeak,
-                    isLast = index == messages.lastIndex,
+                    isLast = index == display.lastIndex,
                 )
             }
         }

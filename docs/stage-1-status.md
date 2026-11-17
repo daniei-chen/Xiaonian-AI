@@ -31,6 +31,9 @@
    capability 层 loop，唯一区别是抓不抓正文（`maxFetch` 0 vs 3）。不再有
    "把 tools 透传给上游" 的路径，因此搜索可以在配置里换成 anysearch 之类的 provider。
 
+3. **续写不落假消息。** 继续生成的提示词只发给上游，不写进历史；产生的第二条
+   assistant 消息在 UI 上并回上一条，用户看到的是"回答被补全"。
+
 ## 架构现状（重要）
 
 `config/capabilities.yaml` 声明 7 种能力，实际装配情况：
@@ -41,20 +44,20 @@
 | search | ✅ deepseek | ✅ |
 | fetch | ✅ deepseek | ✅ |
 | ocr | ✅ deepseek | ✅ |
-| asr | ⚠️ 只有路由直连 | ❌ |
-| tts | ⚠️ 只有路由直连 | ❌ |
-| files | ⚠️ 只有路由直连 | ❌ |
+| asr | ✅ deepseek | ✅ |
+| tts | ✅ deepseek | ✅ |
+| files | ✅ deepseek | ✅ |
 
-**asr / tts / files 是遗留的不一致**：它们能工作，但没进能力层，所以换不了
-provider。补进来是纯机械工作，但还没做。
+**asr / tts / files 已补进能力层**：三者现在都是 registry 里的 provider，
+`/meta/capabilities` 七种能力齐全，换供应商只改配置。
 
 ## 已知限制
 
-- Markdown 不支持表格、嵌套列表
-- 继续生成产出新消息，不追加到原回答
+- ZIP 只回传 text / reasoning / citations 三类内容；TIP、CONTENT_RISK、
+  TOOL_OPEN、READ_LINK、TOOL_IMAGE_SEARCH 等按设计丢弃，不伪装成正文
 - 语音页未在真机验证听感（模拟器麦克风静音）
-- ZIP 只认 text / thinking / citations 三种 fragment，其余丢弃
-- 拍照入口灰显（需接 CameraX）
+- 拍照走系统相机 Intent，但本机 AVD 的 `vendor.qemu.sf.fake_camera=none`，
+  相机 app 启动即崩，拍照链路只能在真机验证
 - 单用户（`DEV_USER_ID`），认证按 spec 8.1 未实现
 
 ## 验证脚本

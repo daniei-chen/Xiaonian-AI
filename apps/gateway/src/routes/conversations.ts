@@ -183,6 +183,8 @@ export const registerConversationRoutes = (
 
     const wantContinue = req.body?.continueGeneration === true
     let text = (req.body?.text ?? '').trim()
+    /** 续写时锚定到目标回答；此时不新建用户消息，提示词也不落库 */
+    let continueTarget: Message | null = null
 
     if (wantContinue) {
       const history = await repo.listMessages(db, conversation.id)
@@ -192,6 +194,7 @@ export const registerConversationRoutes = (
           .code(400)
           .send(apiError('bad_request', 'nothing to continue from', traceId))
       }
+      continueTarget = lastAssistant
       // 用提示词驱动续写，比依赖 assistant 预填充更稳（各兼容层支持不一致）
       text =
         '请直接接着你上一条回答继续输出剩余内容。不要重复已经说过的部分，' +
@@ -244,18 +247,23 @@ export const registerConversationRoutes = (
     )
     if (text) userBlocks.push({ type: 'text', text })
 
-    const userMessage = await repo.appendMessage(db, {
-      id: newId(),
-      conversationId: conversation.id,
-      role: 'user',
-      blocks: userBlocks,
-      status: 'completed',
-    })
+    // 续写不产生用户消息：提示词只是驱动手段，不该出现在对话里
+    const userMessage = continueTarget
+      ? null
+      : await repo.appendMessage(db, {
+          id: newId(),
+          conversationId: conversation.id,
+          role: 'user',
+          blocks: userBlocks,
+          status: 'completed',
+        })
+
+    const parentForAssistant = userMessage?.id ?? continueTarget?.id
 
     const assistantMessage = await repo.appendMessage(db, {
       id: newId(),
       conversationId: conversation.id,
-      parentId: userMessage.id,
+      ...(parentForAssistant ? { parentId: parentForAssistant } : {}),
       role: 'assistant',
       blocks: [],
       status: 'streaming',
@@ -263,13 +271,18 @@ export const registerConversationRoutes = (
       model: configuredModel,
     })
 
-    // 首条消息顺手当标题（不调模型，省一次请求）
-    if (!conversation.title && text) {
+    // 首条消息顺手当标题（不调模型，省一次请求）；续写不改标题
+    if (!conversation.title && text && !continueTarget) {
       await repo.setTitleIfEmpty(db, conversation.id, text.slice(0, 24))
     }
 
     const history = await repo.listMessages(db, conversation.id)
     const chatMessages = toChatMessages(history.filter((m) => m.id !== assistantMessage.id))
+
+    // 续写的提示词只发给上游，不进历史（落库的话会变成一条假的用户消息）
+    if (continueTarget && text) {
+      chatMessages.push({ role: 'user', blocks: [{ type: 'text', text }] })
+    }
 
     reply.hijack()
     const raw = reply.raw
@@ -292,7 +305,7 @@ export const registerConversationRoutes = (
 
     send('message.accepted', {
       conversationId: conversation.id,
-      userMessageId: userMessage.id,
+      userMessageId: userMessage?.id ?? null,
       assistantMessageId: assistantMessage.id,
     })
 
