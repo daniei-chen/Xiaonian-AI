@@ -40,11 +40,13 @@ const ocrRes = await fetch(`${GW}/api/v1/ocr`, {
 const ocr = await ocrRes.json()
 console.log(`ocr: ${ocrRes.status} -> "${(ocr.text ?? '').replace(/\n/g, ' ').slice(0, 80)}"`)
 
-// 4) 深度搜索
+// 4) 检索：默认深度搜索；SEARCH_MODE=light 测浅搜索（也走自建 loop）
+const mode = process.env.SEARCH_MODE ?? 'deep'
 const conv = await (await post('/api/v1/conversations', {})).json()
 const res = await post(`/api/v1/conversations/${conv.id}/messages`, {
   text: 'DeepSeek 最新发布的模型版本号是什么？',
-  deepSearch: true,
+  deepSearch: mode === 'deep',
+  webSearch: mode === 'light',
   maxTokens: 400,
 })
 
@@ -75,7 +77,7 @@ for (;;) {
   }
 }
 
-console.log('deep search events:', [...counts.entries()].map(([k, v]) => `${k}×${v}`).join(' '))
+console.log(`search loop (${mode}) events:`, [...counts.entries()].map(([k, v]) => `${k}×${v}`).join(' '))
 if (failed) console.log('FAILED:', failed.code, failed.message)
 console.log(`citations: ${citations.length}`)
 for (const c of citations.slice(0, 3)) console.log(`  [${c.index}] ${c.title?.slice(0, 40)}`)

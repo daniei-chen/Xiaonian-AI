@@ -201,14 +201,16 @@ export const registerConversationRoutes = (
     }
 
     const wantSearch = req.body?.webSearch === true
-    // 只有能力层真的装配了 search 才能走自建 loop
-    const wantDeepSearch =
-      req.body?.deepSearch === true && caps.defaults.search !== null && text.length > 0
+    const wantDeepSearch = req.body?.deepSearch === true
+    // 联网与深度搜索都走自建的 search loop，区别只在于抓不抓正文。
+    // 这样两条路都是"我们的实现"，不再把 tools 透传给上游。
+    const useSearchLoop =
+      (wantSearch || wantDeepSearch) && caps.defaults.search !== null && text.length > 0
+    const deepMode = wantDeepSearch
     let providerName = req.body?.provider ?? caps.defaultChatProvider
 
-    // 普通联网依赖服务端工具，文件依赖 file_id 引用，两者都只有 anthropic 通道支持；
-    // 深度搜索是我们自己的 loop，用默认（通常更便宜的）通道即可
-    if ((wantSearch && !wantDeepSearch) || fileRefs.length > 0) {
+    // 带文件时必须走 anthropic 通道（只有它支持 file_id 引用）
+    if (fileRefs.length > 0) {
       const capable = caps.chatProviders.find((p) =>
         caps.registry.chat(p).caps().features.includes('server-tools'),
       )
@@ -290,13 +292,12 @@ export const registerConversationRoutes = (
       assistantMessageId: assistantMessage.id,
     })
 
-    // 深度搜索：自己搜、自己抓、自己编号。上游 server-tools 那条路看不到
-    // 中间过程，也换不了搜索源，来源可信度差一截。
+    // 检索：搜 → （深度模式才抓正文）→ 编号注入
     let systemPrompt: string | undefined
     const preCitations: Citation[] = []
 
-    if (wantDeepSearch && caps.defaults.search) {
-      send('search.started', { query: text })
+    if (useSearchLoop && caps.defaults.search) {
+      send('search.started', { query: text, deep: deepMode })
       try {
         const outcome = await runDeepSearch(
           caps.registry,
@@ -305,7 +306,8 @@ export const registerConversationRoutes = (
           req.log,
           {
             searchProvider: caps.defaults.search,
-            fetchProvider: caps.defaults.fetch,
+            fetchProvider: deepMode ? caps.defaults.fetch : null,
+            maxFetch: deepMode ? 3 : 0,
           },
         )
         preCitations.push(...outcome.citations)
@@ -317,7 +319,7 @@ export const registerConversationRoutes = (
         if (outcome.citations.length > 0) send('citations', { items: outcome.citations })
         send('search.done', { fetched: outcome.fetchCalls, total: outcome.resultCount })
       } catch (err) {
-        req.log.warn({ err }, 'deep search failed')
+        req.log.warn({ err }, 'search loop failed')
         send('search.failed', { message: String(err) })
       }
     }
@@ -329,7 +331,6 @@ export const registerConversationRoutes = (
           ...(systemPrompt ? { system: systemPrompt } : {}),
           maxTokens: req.body?.maxTokens ?? 2048,
           thinking: { enabled: req.body?.thinking ?? false, effort: req.body?.effort ?? 'high' },
-          ...(wantSearch && !wantDeepSearch ? { tools: ['deepseek_web_search'] } : {}),
         },
         { userId: DEV_USER_ID, traceId, signal: ac.signal, isolationKey: DEV_USER_ID },
       )) {

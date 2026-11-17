@@ -1,0 +1,68 @@
+# 第一阶段状态（DeepSeek 功能对齐）
+
+> 判定标准：用户能在小念里完成 DeepSeek App 的主要工作。
+> 最后更新：2026-11-17
+
+## 逐项状态
+
+| # | 目标 | 状态 | 实现位置 | 验证方式 |
+|---|---|---|---|---|
+| 1 | 聊天 | ✅ | `POST /conversations/:id/messages`（SSE）+ Android 流式渲染 | 26 个 delta 落库，seq 连续 |
+| 2 | 深度思考 | ✅ | `thinking` + `effort`(high/max) 透传；UI 折叠展示思考块 | anthropic 通道 thinking_delta 解析 |
+| 3 | 搜索 | ✅ | `DeepSeekSearchCapability` → `/v1/tools/search` | 3 条结构化结果（admin 200） |
+| 4 | 深度搜索 | ✅ | `apps/gateway/src/search/deep-search.ts` 自建 loop | 8 条引用 + 回答带 `[2][7]` 标记 |
+| 5 | 读链接 | ✅ | `DeepSeekFetchCapability` → `/v1/tools/fetch`；UI 从剪贴板取 URL | 2583 字符正文 + 标题 |
+| 6 | 文件问答 | ✅ | `/api/v1/files` → DeepSeek Files API，`file_id` 引用 | 上传 PNG 问 secret word，答 PANGOLIN |
+| 7 | OCR | ✅ | `DeepSeekOcrCapability` → `/v1/tools/ocr`；UI「图片转文字」 | 识别出 PANGOLIN 与日期 |
+| 8 | ASR | ✅ | `AudioRecord` → `/api/v1/asr` → 填输入框 | TTS 生成「今天下午三点提醒我开会」，ASR 原样返回 |
+| 9 | TTS | ✅ | `/api/v1/tts` + 消息「朗读」+ 语音页自动朗读 | 178 KB RIFF |
+| 10 | 引用 | ✅ | `citations` 事件 + 来源卡片；deep search 自带编号 | 8 条来源卡片渲染 |
+| 11 | 历史导入 | ✅ | `src/lib/zip.ts` 读写 + `/api/v1/export` `/import` | 7 会话 17 消息 → 13.5 KB → 导入计数一致 |
+| 12 | 移动端使用 | ✅ | Compose + OkHttp，`10.0.2.2:8788` | 真机/模拟器可装可跑 |
+
+## 与 DeepSeek App 的两处差异（有意为之）
+
+1. **思考块不回传上游。** 多轮对话时只回传正文与文件引用。各 provider 的
+   reasoning 语义不一致（Anthropic 要 signature、OpenAI 无标准字段），回传
+   容易触发 400，且显著抬高 token 成本。代价是模型看不到自己上一轮的思考过程。
+
+2. **深度搜索不用上游 server-tools。** `webSearch` 走 DeepSeek 服务端工具（我们
+   看不到中间过程、换不了搜索源）；`deepSearch` 走自己的能力层 loop（搜→抓正文
+   →编号）。两者在 UI 上互斥。**要做可信引用就用 deepSearch。**
+
+## 架构现状（重要）
+
+`config/capabilities.yaml` 声明 7 种能力，实际装配情况：
+
+| 能力 | 是否有 provider | 是否走 CapabilityRegistry |
+|---|---|---|
+| chat | ✅ openai / anthropic 两个 driver | ✅ |
+| search | ✅ deepseek | ✅ |
+| fetch | ✅ deepseek | ✅ |
+| ocr | ✅ deepseek | ✅ |
+| asr | ⚠️ 只有路由直连 | ❌ |
+| tts | ⚠️ 只有路由直连 | ❌ |
+| files | ⚠️ 只有路由直连 | ❌ |
+
+**asr / tts / files 是遗留的不一致**：它们能工作，但没进能力层，所以换不了
+provider。补进来是纯机械工作，但还没做。
+
+## 已知限制
+
+- Markdown 不支持表格、嵌套列表
+- 继续生成产出新消息，不追加到原回答
+- 语音页未在真机验证听感（模拟器麦克风静音）
+- ZIP 只认 text / thinking / citations 三种 fragment，其余丢弃
+- 拍照入口灰显（需接 CameraX）
+- 单用户（`DEV_USER_ID`），认证按 spec 8.1 未实现
+
+## 验证脚本
+
+```bash
+pnpm --filter @xiaonian/gateway start   # 或 node apps/gateway/dist/index.js
+node --env-file=.env scripts/e2e-chat.mjs        # 聊天 + 落库
+node --env-file=.env scripts/e2e-tools.mjs       # search / fetch / ocr / deep search
+node --env-file=.env scripts/e2e-file.mjs        # 文件上传 + 图文问答
+node --env-file=.env scripts/e2e-voice-search.mjs # TTS→ASR 闭环 + 引用
+node --env-file=.env scripts/e2e-replay.mjs      # 重新生成 / 继续生成
+```
