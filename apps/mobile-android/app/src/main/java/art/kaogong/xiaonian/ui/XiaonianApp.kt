@@ -327,6 +327,7 @@ fun XiaonianApp(
             onSpeak = { text -> viewModel.speakMessage(text) },
             onRemoveAttachment = { id -> viewModel.removeAttachment(id) },
             onDismissError = { viewModel.dismissError() },
+            onToggleWebSearch = { viewModel.toggleWebSearch() },
             )
         }
     }
