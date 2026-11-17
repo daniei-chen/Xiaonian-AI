@@ -5,6 +5,11 @@ node_modules/
 # 参考实现（chat-demo 只读，不入库）
 .ref/
 
+# 例外：调研用的原始 APK 有意入库（这是开发仓库，不是发布仓库）。
+# 已反编译出来的 .ref/apk/*-src 和 .ref/apk-tools 仍然忽略（体积大、可重建）。
+!.ref/apk/ChatGPT.apk
+!.ref/apk/DeepSeek.apk
+
 # 构建产物
 dist/
 build/
